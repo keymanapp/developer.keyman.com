@@ -3,7 +3,7 @@
 ## Description
 
 A server that makes the task of contributing new keyboards to https://keyman.com/ easier without requiring
-to first download 1 GB of data.
+an initial download of 1 GB of data.
 
 The backend is implemented with [nest](https://nestjs.com/), the included frontend with
 [angular](https://angular.io/).

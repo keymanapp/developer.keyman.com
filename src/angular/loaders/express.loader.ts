@@ -9,13 +9,13 @@ export class ExpressLoader extends AbstractLoader {
   public register(
     httpAdapter: AbstractHttpAdapter,
     options: AngularModuleOptions,
-  ) {
+  ): void {
     const app = httpAdapter.getInstance();
     const express = loadPackage('express', 'AngularModule', () =>
       require('express'),
     );
-    const clientPath = options.rootPath;
-    const indexFilePath = this.getIndexFilePath(clientPath);
+    const clientPath: string = options.rootPath || '';
+    const indexFilePath: string = this.getIndexFilePath(clientPath);
 
     app.use(express.static(clientPath, options.serveStaticOptions));
     app.get(options.renderPath, (req: any, res: any) =>

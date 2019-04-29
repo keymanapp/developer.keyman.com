@@ -8,5 +8,6 @@ export class NoopLoader extends AbstractLoader {
   public register(
     httpAdapter: AbstractHttpAdapter,
     options: AngularModuleOptions,
+// tslint:disable-next-line: no-empty
   ) {}
 }

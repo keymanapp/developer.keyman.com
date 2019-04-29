@@ -9,7 +9,7 @@ export function loadPackage<T = any>(
   packageName: string,
   context: string,
   loaderFn?: () => T,
-): T {
+): T | undefined {
   try {
     return loaderFn ? loaderFn() : require(packageName);
   } catch (e) {

@@ -10,15 +10,15 @@ export class FastifyLoader extends AbstractLoader {
   public register(
     httpAdapter: AbstractHttpAdapter,
     options: AngularModuleOptions,
-  ) {
+  ): void {
     const app = httpAdapter.getInstance();
     const fastifyStatic = loadPackage('fastify-static', 'AngularModule', () =>
       require('fastify-static'),
     );
     const { setHeaders, redirect, ...send } =
       options.serveStaticOptions || ({} as any);
-    const clientPath = options.rootPath;
-    const indexFilePath = this.getIndexFilePath(clientPath);
+    const clientPath: string = options.rootPath || '';
+    const indexFilePath: string = this.getIndexFilePath(clientPath);
 
     app.register(fastifyStatic, {
       root: clientPath,

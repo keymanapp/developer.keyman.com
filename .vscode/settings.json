@@ -1,6 +1,8 @@
 {
-	"jestrunner.configPath": "frontend/src/jest.config.js",
-	"cSpell.words": [
-		"nestjs"
-	]
+  "jestrunner.configPath": "frontend/src/jest.config.js",
+  "cSpell.words": [
+    "middlewares",
+    "nestjs",
+    "prestart"
+  ]
 }

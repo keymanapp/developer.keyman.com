@@ -8,7 +8,7 @@ export abstract class AbstractLoader {
   public abstract register(
     httpAdapter: AbstractHttpAdapter,
     options: AngularModuleOptions,
-  );
+  ): void;
 
   public getIndexFilePath(clientPath: string): string {
     return join(clientPath, 'index.html');
