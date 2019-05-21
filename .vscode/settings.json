@@ -4,5 +4,6 @@
     "middlewares",
     "nestjs",
     "prestart"
-  ]
+],
+"files.autoSave": "onFocusChange"
 }
