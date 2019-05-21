@@ -56,7 +56,7 @@ export class GithubService {
     return of({ url: `${this.config.redirectHost}:${this.config.port}/` });
   }
 
-  public getUserInformation(token: string): Observable<AxiosResponse<GitHubUser>> {
+  public getUserInformation(token: string): Observable<AxiosResponse<GitHubUser | string>> {
     return this.httpService.get(
       'https://api.github.com/user',
       { headers: { Authorization: token } },

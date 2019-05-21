@@ -1,4 +1,11 @@
-import { HttpModule, HttpService } from '@nestjs/common';
+import {
+  HttpModule,
+  HttpService,
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+  HttpException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import MockAdapter from 'axios-mock-adapter';
 import { of } from 'rxjs';
@@ -9,6 +16,8 @@ import { UserController } from './user.controller';
 import { LoginDto } from '../model/login-dto';
 import { AccessTokenDto } from '../model/access-token-dto';
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
+import '../../utils/to-contain-exception-matcher';
+import { GitHubUserDto } from '../model/git-hub-user-dto';
 
 describe('User Controller', () => {
   let userController: UserController;
@@ -49,13 +58,14 @@ describe('User Controller', () => {
       };
       jest.spyOn(githubService, 'login').mockImplementation(() => of(result));
 
-      const response = await userController.login({ state: '' }).toPromise();
-      expect(response).toBe(result);
+      await expect(
+        userController.login({ state: '' }).toPromise(),
+      ).resolves.toEqual(result);
     });
   });
 
   describe('getAccessToken', () => {
-    it('should return access token', () => {
+    it('should return access token', async () => {
       const session = { state: tokenService.createRandomString(10) };
       const loginDto = { code: 'code987', state: session.state };
       const result: GitHubAccessToken = {
@@ -67,88 +77,124 @@ describe('User Controller', () => {
         .onPost('https://github.com/login/oauth/access_token')
         .reply(200, result);
 
-      expect(userController.getAccessToken(session, loginDto))
-        .resolves.toEqual(new AccessTokenDto('12345'));
+      await expect(
+        userController.getAccessToken(loginDto),
+      ).resolves.toEqual(new AccessTokenDto('12345'));
     });
 
-    it('should return error if wrong state', () => {
+    it('should return error if wrong state', async () => {
       const session = { state: tokenService.createRandomString(10) };
       const loginDto = new LoginDto('code987', 'wrongstate');
       mockAdapter
         .onPost('https://github.com/login/oauth/access_token')
         .reply(403, 'Forbidden');
 
-      expect(userController.getAccessToken(session, loginDto))
-        .rejects.toThrowError('Request failed with status code 403');
+      await expect(
+        userController.getAccessToken(loginDto),
+      ).rejects.toContainException(
+        new ForbiddenException({
+          accessToken: '',
+          error: 'Request failed with status code 403',
+        }),
+      );
     });
 
-    it('should return error if wrong dto object', () => {
+    it('should return error if wrong dto object', async () => {
       const session = { state: tokenService.createRandomString(10) };
       const loginDto = new LoginDto('', session.state);
       mockAdapter
         .onPost('https://github.com/login/oauth/access_token')
         .reply(401, 'Unauthorized');
 
-      expect(userController.getAccessToken(session, loginDto))
-        .rejects.toThrowError('Request failed with status code 401');
+      await expect(
+        userController.getAccessToken(loginDto),
+      ).rejects.toContainException(
+        new UnauthorizedException({
+          accessToken: '',
+          error: 'Request failed with status code 401',
+        }),
+      );
     });
 
-    it('should return error if network not available', () => {
+    it('should return error if network not available', async () => {
       const session = { state: tokenService.createRandomString(10) };
       const loginDto = new LoginDto('code987', session.state);
       mockAdapter
         .onPost('https://github.com/login/oauth/access_token')
         .networkError();
 
-      expect(userController.getAccessToken(session, loginDto))
-        .rejects.toThrowError('Network Error');
+      await expect(
+        userController.getAccessToken(loginDto),
+      ).rejects.toContainException(
+        new HttpException(
+          {
+            accessToken: '',
+            error: 'Network Error',
+          },
+          400,
+        ),
+      );
     });
 
-    it('should return error when GitHub returns an error', () => {
+    it('should return error when GitHub returns an error', async () => {
       const session = { state: tokenService.createRandomString(10) };
       const loginDto = { code: 'code987', state: session.state };
       mockAdapter
         .onPost('https://github.com/login/oauth/access_token')
         .reply(
-          400,
+          200,
           'error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.',
         );
 
-      expect(userController.getAccessToken(session, loginDto))
-        .rejects.toThrowError('Request failed with status code 400');
+      await expect(
+        userController.getAccessToken(loginDto),
+      ).rejects.toContainException(
+        new BadRequestException({
+          accessToken: '',
+          error:
+            'error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.',
+        }),
+      );
     });
   });
 
   describe('logout', () => {
     it('returns URL of homepage', async () => {
-      expect(await userController.logout().toPromise())
-        .toEqual({ url: 'http://localhost:3000/' });
+      await expect(userController.logout().toPromise()).resolves.toEqual({
+        url: 'http://localhost:3000/',
+      });
     });
   });
 
   describe('getUserInformation', () => {
-    it('happy path', () => {
+    it('happy path', async () => {
       const userInfo = {
         login: 'johndoe',
         name: 'john doe',
         avatar_url: 'example.com/myavatar',
       };
-      mockAdapter
-        .onGet('https://api.github.com/user')
-        .reply(200, userInfo);
+      mockAdapter.onGet('https://api.github.com/user').reply(200, userInfo);
 
-      expect(userController.getUserInformation('token 12345'))
-        .resolves.toEqual(userInfo);
+      await expect(
+        userController.getUserInformation('token 12345'),
+      ).resolves.toEqual(new GitHubUserDto(userInfo));
     });
 
-    it('should return error when token is wrong', () => {
+    it('should return error when token is wrong', async () => {
       mockAdapter
         .onGet('https://api.github.com/user')
         .reply(401, 'invalid token');
 
-      expect(
+      await expect(
         userController.getUserInformation('token invalid'),
-      ).rejects.toThrowError('Request failed with status code 401');
+      ).rejects.toContainException(
+        new UnauthorizedException({
+          login: '',
+          name: '',
+          avatarUrl: '',
+          error: 'Request failed with status code 401',
+        }),
+      );
     });
   });
 });
