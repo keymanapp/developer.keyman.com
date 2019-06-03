@@ -19,13 +19,19 @@ export async function callWithErrorHandling<T extends { error?: string}, R>(
         typeof response.data === 'string' &&
         (response.data as string).startsWith('error=')
       ) {
+        // console.log('*** got error string:');
+        // console.log(response.data);
         token = new type();
         token.error = response.data as string;
         status = 400;
       } else {
+        // console.log('**** got response:');
+        // console.log(response);
         token = extractData(response);
       }
     } catch (error) {
+      // console.log('*** caught error:');
+      // console.log(error);
       token = new type();
       token.error = error.message;
       if (error.response != null) {

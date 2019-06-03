@@ -1,12 +1,12 @@
 import { HttpService, Injectable } from '@nestjs/common';
-import { AxiosResponse } from 'axios';
+import { AxiosResponse, AxiosRequestConfig } from 'axios';
 import { Observable, of } from 'rxjs';
 import { TokenService } from '../token/token.service';
 import { ConfigService } from '../../config/config.service';
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
 import { GitHubUser } from '../interfaces/git-hub-user.interface';
 
-const redirectUri = '/api/auth/redirect';
+const redirectUri = '/index.html';
 const scope = 'repo read:user user:email';
 
 @Injectable()
@@ -38,18 +38,40 @@ export class GithubService {
     code: string,
     state: string,
   ): Observable<AxiosResponse<GitHubAccessToken | string>> {
-    const data = {
-      client_id: this.config.clientId,
-      client_secret: this.config.clientSecret,
-      code: { code },
-      redirect_uri: this.getRedirectUri(),
-      state: { state },
+    // REVIEW: The GitHub documentation
+    // (https://developer.github.com/apps/building-oauth-apps/authorizing-oauth-apps/#2-users-are-redirected-back-to-your-site-by-github)
+    // mentions to use POST to get the access token, but I can't get that to work whereas
+    // GET works.
+    /*
+    const options: AxiosRequestConfig = {
+      headers: {
+        accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      data: {
+        client_id: this.config.clientId,
+        client_secret: this.config.clientSecret,
+        code: { code },
+        redirect_uri: this.getRedirectUri(),
+        state: { state },
+      },
     };
 
     return this.httpService.post(
       'https://github.com/login/oauth/access_token',
-      data,
+      options,
     );
+    */
+    const opt: AxiosRequestConfig = {
+      headers: {
+        accept: 'application/json',
+      },
+    };
+    return this.httpService.get(
+      'https://github.com/login/oauth/access_token' +
+      `?client_id=${this.config.clientId}&client_secret=${this.config.clientSecret}` +
+      `&code=${code}&state=${state}`,
+      opt);
   }
 
   public logout(): Observable<{ url: string }> {
@@ -57,6 +79,9 @@ export class GithubService {
   }
 
   public getUserInformation(token: string): Observable<AxiosResponse<GitHubUser | string>> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
     return this.httpService.get(
       'https://api.github.com/user',
       { headers: { Authorization: token } },
