@@ -1,0 +1,44 @@
+@import '../../constants';
+
+$margin: 5px;
+$height: 40px;
+$iconHeight: 30px;
+
+.name {
+  vertical-align: top;
+}
+
+.logout {
+  float: right;
+}
+
+.user {
+  position: relative;
+  float: right;
+  z-index: 10000;
+  background-color: $header-bg-color;
+  margin: $margin;
+  height: $height;
+  line-height: $height;
+  cursor: default;
+}
+
+a {
+  margin-left: $margin;
+  margin-right: $margin;
+}
+
+a:link,
+a:visited,
+a:active,
+a:hover {
+  text-decoration: none;
+  color: black;
+  cursor: pointer;
+}
+
+img {
+  padding: $margin;
+  width: $iconHeight;
+  height: $iconHeight;
+}
