@@ -1,0 +1,7 @@
+<div *ngIf="isLoggedIn" class="user" title="You are logged in as GitHub user '{{userProfile.login}}'">
+  <img *ngIf="userProfile" src="{{ userProfile.avatarUrl }}" />
+  <span *ngIf="userProfile" class="name">{{ userProfile.login }}</span>
+  <a href="#" (click)="logout()" class="logout" title="Logout of Keyman Developer Online">
+    <fa-icon icon="sign-out-alt"></fa-icon>
+  </a>
+</div>

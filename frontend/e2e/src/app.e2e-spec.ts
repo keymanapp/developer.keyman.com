@@ -8,9 +8,10 @@ describe('workspace-project App', () => {
     page = new AppPage();
   });
 
-  it('should display welcome message', () => {
+  it('should display login page', () => {
     page.navigateTo();
-    expect(page.getTitleText()).toEqual('Welcome to frontend!');
+    expect(page.getTitleText()).toEqual('Keyman Developer Online');
+    expect(page.getLoginButtonText()).toEqual('Login with GitHub');
   });
 
   afterEach(async () => {
