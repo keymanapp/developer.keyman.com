@@ -3,7 +3,6 @@ import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { INestApplication } from '@nestjs/common';
 import { GithubService } from '../src/auth/github/github.service';
-import { TokenService } from '../src/auth/token/token.service';
 
 describe('UserController (e2e)', () => {
   const url = {
@@ -20,8 +19,6 @@ describe('UserController (e2e)', () => {
       .useValue(mockedGithubService)
       .compile();
 
-    const tokenService = new TokenService();
-
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
     await app.init();
@@ -34,16 +31,6 @@ describe('UserController (e2e)', () => {
       .expect(200)
       .expect('Content-Type', /json/)
       .expect(url);
-  });
-
-  it('/api/auth/login (POST) - happy path', () => {
-    return request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ code: '12345', state: 'mystate' })
-      .set('Accept', 'application/json')
-      .expect(200)
-      .expect('Content-Type', /json/)
-      .expect({ access_token: 'whatever'} );
   });
 
   it('/api/auth/login (POST) -  wrong data', () => {
@@ -59,7 +46,7 @@ describe('UserController (e2e)', () => {
       .post('/api/auth/login')
       .send({ code: '12345', state: 'mystate' })
       .set('Accept', 'application/json')
-      .expect(403);
+      .expect(400);
   });
 
   afterAll(async () => {

@@ -26,13 +26,6 @@
     },
     {
       "type": "npm",
-      "script": "start:debug",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
       "script": "build",
       "path": "frontend/",
       "problemMatcher": [
@@ -94,14 +87,29 @@
     },
     {
       "type": "npm",
-      "script": "start:dev",
+      "script": "lint",
       "problemMatcher": [
         "$tslint5"
       ]
     },
     {
       "type": "npm",
-      "script": "lint",
+      "script": "start:watch:dev",
+      "problemMatcher": [
+        "$tslint5"
+      ]
+    },
+    {
+      "type": "npm",
+      "script": "start:watch:debug",
+      "problemMatcher": [
+        "$tslint5"
+      ]
+    },
+    {
+      "type": "npm",
+      "script": "start",
+      "path": "frontend/",
       "problemMatcher": [
         "$tslint5"
       ]

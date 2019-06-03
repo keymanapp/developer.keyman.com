@@ -15,18 +15,19 @@ import { TokenService } from '../token/token.service';
 import { UserController } from './user.controller';
 import { LoginDto } from '../model/login-dto';
 import { AccessTokenDto } from '../model/access-token-dto';
+import { GitHubUserDto } from '../model/git-hub-user-dto';
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
 import '../../utils/to-contain-exception-matcher';
-import { GitHubUserDto } from '../model/git-hub-user-dto';
 
 describe('User Controller', () => {
-  let userController: UserController;
+  let sut: UserController;
   let githubService: GithubService;
-  let tokenService: TokenService;
   let httpService: HttpService;
   let mockAdapter: MockAdapter;
 
   beforeEach(async () => {
+    // NOTE: we mock the Axios HttpService instead of GithubService because that's easier
+    // than trying to create the correct AxiosResult values returned from GithubService.
     httpService = new HttpService();
     mockAdapter = new MockAdapter(httpService.axiosRef);
     const module: TestingModule = await Test.createTestingModule({
@@ -42,13 +43,12 @@ describe('User Controller', () => {
       ],
     }).compile();
 
-    userController = module.get<UserController>(UserController);
+    sut = module.get<UserController>(UserController);
     githubService = module.get<GithubService>(GithubService);
-    tokenService = module.get<TokenService>(TokenService);
   });
 
   it('should be defined', () => {
-    expect(userController).toBeDefined();
+    expect(sut).toBeDefined();
   });
 
   describe('login', () => {
@@ -59,38 +59,40 @@ describe('User Controller', () => {
       jest.spyOn(githubService, 'login').mockImplementation(() => of(result));
 
       await expect(
-        userController.login({ state: '' }).toPromise(),
+        sut.login({ state: '' }).toPromise(),
       ).resolves.toEqual(result);
     });
   });
 
   describe('getAccessToken', () => {
     it('should return access token', async () => {
-      const session = { state: tokenService.createRandomString(10) };
-      const loginDto = { code: 'code987', state: session.state };
+      const loginDto = { code: 'code987', state: '9876543210' };
       const result: GitHubAccessToken = {
         access_token: '12345',
         scope: 'repo,read:user,user:email',
         token_type: 'bearer',
       };
       mockAdapter
-        .onPost('https://github.com/login/oauth/access_token')
+        .onGet('https://github.com/login/oauth/access_token' +
+          '?client_id=abcxyz&client_secret=secret&code=code987&state=9876543210')
         .reply(200, result);
 
       await expect(
-        userController.getAccessToken(loginDto),
+        sut.getAccessToken(loginDto),
       ).resolves.toEqual(new AccessTokenDto('12345'));
     });
 
     it('should return error if wrong state', async () => {
-      const session = { state: tokenService.createRandomString(10) };
       const loginDto = new LoginDto('code987', 'wrongstate');
       mockAdapter
-        .onPost('https://github.com/login/oauth/access_token')
+        .onGet(
+          'https://github.com/login/oauth/access_token' +
+            '?client_id=abcxyz&client_secret=secret&code=code987&state=wrongstate',
+        )
         .reply(403, 'Forbidden');
 
       await expect(
-        userController.getAccessToken(loginDto),
+        sut.getAccessToken(loginDto),
       ).rejects.toContainException(
         new ForbiddenException({
           accessToken: '',
@@ -100,14 +102,16 @@ describe('User Controller', () => {
     });
 
     it('should return error if wrong dto object', async () => {
-      const session = { state: tokenService.createRandomString(10) };
-      const loginDto = new LoginDto('', session.state);
+      const loginDto = new LoginDto('', '9876543210');
       mockAdapter
-        .onPost('https://github.com/login/oauth/access_token')
+        .onGet(
+          'https://github.com/login/oauth/access_token' +
+            '?client_id=abcxyz&client_secret=secret&code=&state=9876543210',
+        )
         .reply(401, 'Unauthorized');
 
       await expect(
-        userController.getAccessToken(loginDto),
+        sut.getAccessToken(loginDto),
       ).rejects.toContainException(
         new UnauthorizedException({
           accessToken: '',
@@ -117,14 +121,16 @@ describe('User Controller', () => {
     });
 
     it('should return error if network not available', async () => {
-      const session = { state: tokenService.createRandomString(10) };
-      const loginDto = new LoginDto('code987', session.state);
+      const loginDto = new LoginDto('code987', '9876543210');
       mockAdapter
-        .onPost('https://github.com/login/oauth/access_token')
+        .onGet(
+          'https://github.com/login/oauth/access_token' +
+            '?client_id=abcxyz&client_secret=secret&code=code987&state=9876543210',
+        )
         .networkError();
 
       await expect(
-        userController.getAccessToken(loginDto),
+        sut.getAccessToken(loginDto),
       ).rejects.toContainException(
         new HttpException(
           {
@@ -137,17 +143,19 @@ describe('User Controller', () => {
     });
 
     it('should return error when GitHub returns an error', async () => {
-      const session = { state: tokenService.createRandomString(10) };
-      const loginDto = { code: 'code987', state: session.state };
+      const loginDto = { code: 'code987', state: '9876543210' };
       mockAdapter
-        .onPost('https://github.com/login/oauth/access_token')
+        .onGet(
+          'https://github.com/login/oauth/access_token' +
+            '?client_id=abcxyz&client_secret=secret&code=code987&state=9876543210',
+        )
         .reply(
           200,
           'error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.',
         );
 
       await expect(
-        userController.getAccessToken(loginDto),
+        sut.getAccessToken(loginDto),
       ).rejects.toContainException(
         new BadRequestException({
           accessToken: '',
@@ -160,7 +168,7 @@ describe('User Controller', () => {
 
   describe('logout', () => {
     it('returns URL of homepage', async () => {
-      await expect(userController.logout().toPromise()).resolves.toEqual({
+      await expect(sut.logout().toPromise()).resolves.toEqual({
         url: 'http://localhost:3000/',
       });
     });
@@ -176,7 +184,7 @@ describe('User Controller', () => {
       mockAdapter.onGet('https://api.github.com/user').reply(200, userInfo);
 
       await expect(
-        userController.getUserInformation('token 12345'),
+        sut.getUserInformation('token 12345'),
       ).resolves.toEqual(new GitHubUserDto(userInfo));
     });
 
@@ -186,7 +194,7 @@ describe('User Controller', () => {
         .reply(401, 'invalid token');
 
       await expect(
-        userController.getUserInformation('token invalid'),
+        sut.getUserInformation('token invalid'),
       ).rejects.toContainException(
         new UnauthorizedException({
           login: '',

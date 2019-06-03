@@ -48,11 +48,12 @@ export class UserController {
   }
 
   @Get('user')
-  public async getUserInformation(@Headers('Authorization') token: string): Promise<GitHubUserDto> {
+  public async getUserInformation(@Headers('authorization') token: string): Promise<GitHubUserDto> {
     return callWithErrorHandling(
       () => this.githubService.getUserInformation(token),
       (response) => new GitHubUserDto(response.data as GitHubUser),
       GitHubUserDto,
     );
   }
+
 }

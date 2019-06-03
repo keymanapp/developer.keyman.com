@@ -1,5 +1,4 @@
 import { GitHubUser } from '../interfaces/git-hub-user.interface';
-import { JsonProperty } from '../../utils/json-property.decorator';
 
 export class GitHubUserDto {
   constructor(data: GitHubUser = null) {
