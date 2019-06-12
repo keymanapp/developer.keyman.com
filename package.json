@@ -82,14 +82,6 @@
         },
         "coverageDirectory": "<rootDir>/../coverage",
         "testEnvironment": "node"
-      },
-      {
-        "rootDir": "frontend",
-        "preset": "jest-preset-angular",
-        "setupFilesAfterEnv": [
-          "<rootDir>/src/setupJest.ts"
-        ],
-        "runner": "jest-runner-tsc"
       }
     ]
   }

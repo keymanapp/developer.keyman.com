@@ -1,5 +1,5 @@
 {
-  "jestrunner.configPath": "frontend/src/jest.config.js",
+  "jestrunner.configPath": "frontend/jest.config.js",
   "cSpell.words": [
     "middlewares",
     "nestjs",
