@@ -1,8 +1,8 @@
 import { HttpService } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule } from '../../config/config.module';
-import { GithubService } from '../github/github.service';
-import { TokenService } from '../token/token.service';
+import { ConfigModule } from '../config/config.module';
+import { GithubService } from './github.service';
+import { TokenService } from '../auth/token/token.service';
 
 describe('GitHub Service', () => {
   let sut: GithubService;
@@ -68,7 +68,7 @@ describe('GitHub Service', () => {
   });
 
   describe('getUserInformation', () => {
-    it('should invoke get on HttpService', async () => {
+    it('should invoke GET on HttpService', async () => {
       await sut.getUserInformation('12345');
 
       expect(spyHttpService.get).toHaveBeenCalledWith(
@@ -84,6 +84,27 @@ describe('GitHub Service', () => {
 
     it('should return null when token is empty', async () => {
       const result = await sut.getUserInformation('');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getRepos', () => {
+    it('should invoke GET on HttpService', async () => {
+      await sut.getRepos('12345');
+
+      expect(spyHttpService.get).toHaveBeenCalledWith(
+        'https://api.github.com/user/repos?type=owner',
+        { headers: { Authorization: '12345' } },
+      );
+    });
+
+    it('should return null when token is null', async () => {
+      const result = await sut.getRepos(null);
+      expect(result).toBeNull();
+    });
+
+    it('should return null when token is empty', async () => {
+      const result = await sut.getRepos('');
       expect(result).toBeNull();
     });
   });

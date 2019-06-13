@@ -1,8 +1,10 @@
 import { HttpService, Injectable } from '@nestjs/common';
 import { AxiosResponse, AxiosRequestConfig } from 'axios';
 import { Observable, of } from 'rxjs';
-import { TokenService } from '../token/token.service';
-import { ConfigService } from '../../config/config.service';
+
+import { TokenService } from '../auth/token/token.service';
+import { ConfigService } from '../config/config.service';
+
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
 import { GitHubUser } from '../interfaces/git-hub-user.interface';
 
@@ -86,5 +88,14 @@ export class GithubService {
       'https://api.github.com/user',
       { headers: { Authorization: token } },
     );
+  }
+
+  public getRepos(token: string): Observable<AxiosResponse> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
+    return this.httpService.get('https://api.github.com/user/repos?type=owner', {
+      headers: { Authorization: token },
+    });
   }
 }

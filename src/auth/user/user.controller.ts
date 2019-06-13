@@ -9,14 +9,16 @@ import {
   Delete,
   Headers,
 } from '@nestjs/common';
-import { GithubService } from '../github/github.service';
-import { LoginDto } from '../model/login-dto';
 import { Observable } from 'rxjs';
-import { AccessTokenDto } from '../model/access-token-dto';
-import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
-import { GitHubUserDto } from '../model/git-hub-user-dto';
+
+import { GithubService } from '../../github/github.service';
+import { GitHubAccessToken } from '../../interfaces/github-access-token.interface';
+import { GitHubUser } from '../../interfaces/git-hub-user.interface';
 import { callWithErrorHandling } from '../../utils/call-with-error-handling';
-import { GitHubUser } from '../interfaces/git-hub-user.interface';
+
+import { AccessTokenDto } from '../model/access-token-dto';
+import { GitHubUserDto } from '../model/git-hub-user-dto';
+import { LoginDto } from '../model/login-dto';
 
 @Controller('auth')
 export class UserController {

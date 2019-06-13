@@ -10,13 +10,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import MockAdapter from 'axios-mock-adapter';
 import { of } from 'rxjs';
 import { ConfigModule } from '../../config/config.module';
-import { GithubService } from '../github/github.service';
+import { GithubService } from '../../github/github.service';
 import { TokenService } from '../token/token.service';
 import { UserController } from './user.controller';
 import { LoginDto } from '../model/login-dto';
 import { AccessTokenDto } from '../model/access-token-dto';
 import { GitHubUserDto } from '../model/git-hub-user-dto';
-import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
+import { GitHubAccessToken } from '../../interfaces/github-access-token.interface';
 import '../../utils/to-contain-exception-matcher';
 
 describe('User Controller', () => {

@@ -7,6 +7,7 @@ import { AngularModule } from './angular/angular.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
+import { GithubModule } from './github/github.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ConfigService } from './config/config.service';
     }),
     AuthModule,
     ConfigModule,
+    GithubModule,
   ],
   controllers: [],
   providers: [],
@@ -27,7 +29,7 @@ export class AppModule implements NestModule {
     HelmetMiddleware.configure({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: ["'self'"],
+          defaultSrc: ['self'],
         },
       },
       frameguard: {

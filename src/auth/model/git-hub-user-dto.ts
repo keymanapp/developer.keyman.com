@@ -1,4 +1,4 @@
-import { GitHubUser } from '../interfaces/git-hub-user.interface';
+import { GitHubUser } from '../../interfaces/git-hub-user.interface';
 
 export class GitHubUserDto {
   constructor(data: GitHubUser = null) {
