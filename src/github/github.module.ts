@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, HttpModule } from '@nestjs/common';
 
-import { ConfigService } from '../config/config.service';
+import { TokenModule } from '../token/token.module';
+import { ConfigModule } from '../config/config.module';
 import { GithubService } from './github.service';
 
 @Module({
-  imports: [ConfigService],
+  imports: [ConfigModule, HttpModule, TokenModule],
   providers: [GithubService],
   exports: [GithubService],
 })

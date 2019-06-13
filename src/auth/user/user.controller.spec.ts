@@ -11,7 +11,7 @@ import MockAdapter from 'axios-mock-adapter';
 import { of } from 'rxjs';
 import { ConfigModule } from '../../config/config.module';
 import { GithubService } from '../../github/github.service';
-import { TokenService } from '../token/token.service';
+import { TokenService } from '../../token/token.service';
 import { UserController } from './user.controller';
 import { LoginDto } from '../model/login-dto';
 import { AccessTokenDto } from '../model/access-token-dto';
