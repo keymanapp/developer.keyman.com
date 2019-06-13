@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { SESSION_STORAGE, WebStorageService } from 'angular-webstorage-service';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 import { GitHubUser } from '../model/git-hub-user';
@@ -35,7 +35,6 @@ export class UserService {
       map(obj => obj.url),
     );
   }
-
 
   public getAccessToken(code: string, state: string): Observable<string> {
     return this.http
@@ -109,5 +108,9 @@ export class UserService {
       catchError(ErrorHelper.handleError('DELETE login REST API', { url: '' })),
       map(obj => obj.url),
     );
+  }
+
+  public isLoggedIn(): boolean {
+    return this.accessToken != null;
   }
 }
