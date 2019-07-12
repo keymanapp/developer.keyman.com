@@ -3,116 +3,124 @@
   // for the documentation about the tasks.json format
   "version": "2.0.0",
   "tasks": [
-    {
-      "type": "npm",
-      "script": "build",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "build:watch",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "start",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "build",
-      "path": "frontend/",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "build:watch",
-      "path": "frontend/",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "test:cov",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "test:e2e",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "test:e2e",
-      "path": "frontend/",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "test:coverage",
-      "path": "frontend/",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "test:watch",
-      "path": "frontend/",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "test:watch",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "lint",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "start:watch:dev",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "start:watch:debug",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    },
-    {
-      "type": "npm",
-      "script": "start",
-      "path": "frontend/",
-      "problemMatcher": [
-        "$tslint5"
-      ]
-    }
-  ]
+	{
+		"type": "npm",
+		"script": "build",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "build:watch",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "start",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "build",
+		"path": "frontend/",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "build:watch",
+		"path": "frontend/",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "test:cov",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "test:e2e",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "test:e2e",
+		"path": "frontend/",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "test:coverage",
+		"path": "frontend/",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "test:watch",
+		"path": "frontend/",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "test:watch",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "lint",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "start:watch:dev",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "start:watch:debug",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "start",
+		"path": "frontend/",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "lint",
+		"path": "frontend/",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	}
+]
 }
