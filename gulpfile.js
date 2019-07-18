@@ -49,6 +49,22 @@ function installFrontend(cb) {
   runCommand(cb, 'cd frontend && npm install');
 }
 
+function installBackendCi(cb) {
+  runCommand(cb, 'npm ci');
+}
+
+function installFrontendCi(cb) {
+  runCommand(cb, 'cd frontend && npm ci');
+}
+
+function deployBackend(cb) {
+  runCommand(cb, 'npm run prestart:prod')
+}
+
+function deployFrontend(cb) {
+  runCommand(cb, 'cd frontend && npm run build')
+}
+
 exports.default = series(
   parallel(installBackend, installFrontend),
   parallel(lintBackend, lintFrontend),
@@ -59,9 +75,11 @@ exports.test = series(testBackend, testFrontend)
 exports.lint = series(lintBackend, lintFrontend)
 exports.e2e = series(e2eBackend, e2eFrontend)
 exports.install = series(installBackend, installFrontend)
+exports.installCi = series(installBackendCi, installFrontendCi)
 exports.cibuild = series(
-  parallel(installBackend, installFrontend),
+  parallel(installBackendCi, installFrontendCi),
   parallel(lintBackend, lintFrontend))
 exports.citest = series(
   parallel(testBackend, testFrontend),
   parallel(e2eBackend, e2eFrontend))
+exports.deploy = series(deployFrontend, deployBackend)
