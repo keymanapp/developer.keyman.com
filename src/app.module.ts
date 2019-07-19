@@ -2,11 +2,15 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { CookieParserMiddleware } from '@nest-middlewares/cookie-parser';
 import { HelmetMiddleware } from '@nest-middlewares/helmet';
 import { ExpressSessionMiddleware } from '@nest-middlewares/express-session';
+import * as expressSession from 'express-session';
 
 import { AngularModule } from './angular/angular.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
+
+// tslint:disable-next-line:no-require-imports no-var-requires variable-name typedef
+const MemoryStore = require('memorystore')(expressSession);
 
 @Module({
   imports: [
@@ -27,6 +31,7 @@ export class AppModule implements NestModule {
     HelmetMiddleware.configure({
       contentSecurityPolicy: {
         directives: {
+          // tslint:disable-next-line: quotemark
           defaultSrc: ["'self'"],
         },
       },
@@ -49,12 +54,24 @@ export class AppModule implements NestModule {
       cookie.secure = false;
     }
 
-    ExpressSessionMiddleware.configure({
+    const sessionOpts: expressSession.SessionOptions = {
       secret: this.configService.sessionSecret,
       cookie,
       saveUninitialized: false,
       resave: false,
-    });
+    };
+
+    if (process.env.NODE_ENV === 'production') {
+      // It seems that MemoryStore has a bug (https://github.com/roccomuso/memorystore/issues/11)
+      // so that it doesn't properly shut down when
+      sessionOpts.store = new MemoryStore({
+        checkPeriod: 24 * 60 * 60 * 1000, // 24 hrs * 60 min * 60 sec * 1000 ms
+      });
+    } else {
+      cookie.secure = false;
+    }
+
+    ExpressSessionMiddleware.configure(sessionOpts);
 
     consumer.apply(CookieParserMiddleware).forRoutes('/');
     consumer.apply(HelmetMiddleware).forRoutes('/');
