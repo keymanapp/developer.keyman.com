@@ -121,6 +121,28 @@
 		"problemMatcher": [
 			"$tslint5"
 		]
+	},
+	{
+		"type": "gulp",
+		"task": "default",
+		"problemMatcher": [
+			"$tslint5"
+		]
+	},
+	{
+		"label": "docker-compose build",
+		"type": "shell",
+		"command": "docker-compose",
+		"args": [
+			"build"
+		]
+	},
+	{
+		"type": "npm",
+		"script": "start:prod",
+		"problemMatcher": [
+			"$tslint5"
+		]
 	}
 ]
 }
