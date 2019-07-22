@@ -36,16 +36,41 @@ describe('Projects Controller', () => {
 
   describe('getRepos', () => {
     it('should return list of repos', async () => {
-      jest.spyOn(githubService, 'getRepos').mockImplementationOnce(() => of({ name: 'foo' }));
+      jest.spyOn(githubService, 'getRepos').mockImplementationOnce(() => of({
+        name: 'foo',
+        owner: { login: 'foo' },
+      }));
 
-      await expect(sut.getRepos('token 12345', 1).toPromise())
+      const session = { login: 'foo' };
+      await expect(sut.getRepos(session, 'token 12345', 1).toPromise())
         .resolves.toEqual([{ name: 'foo' }]);
+    });
+
+    it('should filter list of repos', async () => {
+      jest.spyOn(githubService, 'getRepos').mockImplementationOnce(() =>
+        of(
+          {
+            name: 'foo',
+            owner: { login: 'foo' },
+          },
+          {
+            name: 'other',
+            owner: { login: 'bar' },
+          },
+        ),
+      );
+
+      const session = { login: 'foo' };
+      await expect(
+        sut.getRepos(session, 'token 12345', 1).toPromise(),
+      ).resolves.toEqual([{ name: 'foo' }]);
     });
 
     it('should return empty list if requesting behind last page', async () => {
       jest.spyOn(githubService, 'getRepos').mockImplementationOnce(() => empty());
 
-      await expect(sut.getRepos('token 12345', 99).toPromise()).resolves.toEqual([]);
+      const session = { login: 'foo' };
+      await expect(sut.getRepos(session, 'token 12345', 99).toPromise()).resolves.toEqual([]);
     });
   });
 });

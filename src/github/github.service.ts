@@ -11,7 +11,7 @@ import { GitHubUser } from '../interfaces/git-hub-user.interface';
 
 const redirectUri = '/index.html';
 const scope = 'repo read:user user:email';
-interface GitHubProject { name: string; }
+interface GitHubProject { name: string; full_name?: string; owner?: { login: string; }; }
 
 @Injectable()
 export class GithubService {

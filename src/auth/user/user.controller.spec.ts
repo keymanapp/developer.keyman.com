@@ -183,8 +183,9 @@ describe('User Controller', () => {
       };
       mockAdapter.onGet('https://api.github.com/user').reply(200, userInfo);
 
+      const session = { login: '' };
       await expect(
-        sut.getUserInformation('token 12345'),
+        sut.getUserInformation(session, 'token 12345'),
       ).resolves.toEqual(new GitHubUserDto(userInfo));
     });
 
@@ -193,8 +194,9 @@ describe('User Controller', () => {
         .onGet('https://api.github.com/user')
         .reply(401, 'invalid token');
 
+      const session = { login: '' };
       await expect(
-        sut.getUserInformation('token invalid'),
+        sut.getUserInformation(session, 'token invalid'),
       ).rejects.toContainException(
         new UnauthorizedException({
           login: '',

@@ -50,10 +50,17 @@ export class UserController {
   }
 
   @Get('user')
-  public async getUserInformation(@Headers('authorization') token: string): Promise<GitHubUserDto> {
+  public async getUserInformation(
+    @Session() session: any,
+    @Headers('authorization') token: string,
+  ): Promise<GitHubUserDto> {
     return callWithErrorHandling(
       () => this.githubService.getUserInformation(token),
-      (response) => new GitHubUserDto(response.data as GitHubUser),
+      (response) => {
+        const user = response.data as GitHubUser;
+        session.login = user.login;
+        return new GitHubUserDto(user);
+      },
       GitHubUserDto,
     );
   }
