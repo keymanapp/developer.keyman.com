@@ -62,7 +62,7 @@ function deployBackend(cb) {
 }
 
 function deployFrontend(cb) {
-  runCommand(cb, 'cd frontend && npm run build')
+  runCommand(cb, 'cd frontend && npm run build:prod')
 }
 
 exports.default = series(
