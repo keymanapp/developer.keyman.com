@@ -1,7 +1,15 @@
-import { Observable, of } from 'rxjs';
+import { Observable, of, EMPTY } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
+import { User } from '../model/user';
 
+@Injectable({
+  providedIn: 'root',
+})
 export class ErrorHelper {
-  public static log(message: any): void {
+  constructor(private user: User, private router: Router) {}
+
+  public log(message: any): void {
     console.log(message);
   }
 
@@ -11,18 +19,23 @@ export class ErrorHelper {
    * @param operation - name of the operation that failed
    * @param result - optional value to return as the observable result
    */
-  public static handleError<T>(operation = 'operation', result?: T) {
+  public handleError<T>(operation = 'operation', result?: T) {
     return (error: any): Observable<T> => {
       // TODO: send the error to remote logging infrastructure
       console.error('got error:');
       console.error(error); // log to console instead
 
-      // TODO: better job of transforming error for user consumption
-      this.log(`${operation} failed: ${error.message}`);
+      if (error.status === 403) {
+        this.user.clear();
+        this.router.navigate(['/'], { replaceUrl: true });
+        return EMPTY;
+      } else {
+        // TODO: better job of transforming error for user consumption
+        this.log(`${operation} failed: ${error.message}`);
+      }
 
       // Let the app keep running by returning an empty result.
       return of(result as T);
     };
   }
-
 }
