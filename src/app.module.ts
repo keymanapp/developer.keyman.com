@@ -27,6 +27,7 @@ export class AppModule implements NestModule {
     HelmetMiddleware.configure({
       contentSecurityPolicy: {
         directives: {
+          // tslint:disable-next-line: quotemark
           defaultSrc: ["'self'"],
         },
       },
