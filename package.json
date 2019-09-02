@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc --watch -p tsconfig.build.json",
+    "gulp": "gulp",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "cross-env NODE_ENV=development  ts-node -r tsconfig-paths/register src/main.ts",
     "start:watch:dev": "cross-env NODE_ENV=development  nodemon",
