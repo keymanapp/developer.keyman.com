@@ -7,7 +7,7 @@
     "build": "ng build",
     "build:watch": "ng build --watch",
     "lint": "ng lint",
-    "test:e2e": "ng e2e",
+    "test:e2e": "ng e2e --webdriver-update=false",
     "test": "jest",
     "test:update": "jest --coverage --watch=false -u",
     "test:watch": "jest --watch=true",
@@ -46,7 +46,6 @@
     "protractor": "~5.4.0",
     "ts-node": "^8.3.0",
     "tslint": "^5.18.0",
-    "typescript": "~3.4.5",
-    "webdriver-manager": "^12.1.6"
+    "typescript": "~3.4.5"
   }
 }

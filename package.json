@@ -58,6 +58,7 @@
     "axios-mock-adapter": "^1.17.0",
     "cross-env": "^5.2.0",
     "gulp": "^4.0.2",
+    "gulp-run-command": "0.0.9",
     "jest": "^24.8.0",
     "nodemon": "^1.19.1",
     "prettier": "^1.18.2",
