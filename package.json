@@ -38,6 +38,7 @@
     "express-rate-limit": "^5.0.0",
     "express-session": "^1.16.2",
     "helmet": "^3.19.0",
+    "memorystore": "^1.6.1",
     "reflect-metadata": "^0.1.12",
     "rimraf": "^2.6.2",
     "rxjs": "^6.5.2"
