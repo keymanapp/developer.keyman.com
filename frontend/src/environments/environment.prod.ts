@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://not.known.yet/api',
+  apiUrl: 'https://keyman.dev/api',
 };

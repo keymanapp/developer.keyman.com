@@ -12,7 +12,9 @@ export class ConfigService {
   private readonly envConfig: EnvConfig;
 
   constructor() {
-    const config = dotenv.parse(fs.readFileSync(this.getEnvFile()));
+    const envFile = this.getEnvFile();
+    const envFileContent = envFile != null ? fs.readFileSync(envFile) : '';
+    const config = dotenv.parse(envFileContent);
     this.envConfig = this.validateInput(config);
   }
 
@@ -20,6 +22,9 @@ export class ConfigService {
     const env = process.env.NODE_ENV != null ? process.env.NODE_ENV : 'test';
     const file = `${env}.env`;
     if (!fs.existsSync(file)) {
+      if (env === 'production') {
+        return null;
+      }
       throw new Error(`Missing environment file "${file}"`);
     }
     return file;
@@ -31,17 +36,35 @@ export class ConfigService {
    * See https://docs.nestjs.com/techniques/configuration
    */
   private validateInput(envConfig: EnvConfig): EnvConfig {
+    const nodeEnv = process.env.NODE_ENV != null ? process.env.NODE_ENV : 'development';
+    const port = process.env.PORT != null ? process.env.PORT : 3000;
+    const host = process.env.REDIRECT_HOST != null ? process.env.REDIRECT_HOST : 'http://localhost';
+    const clientId = process.env.CLIENT_ID;
+    const clientSecret = process.env.CLIENT_SECRET;
+    const sessionSecret = process.env.SESSION_SECRET;
+    const expiresDays = process.env.EXPIRES_DAYS != null ? process.env.EXPIRES_DAYS : 1;
+    const cookieMaxAge = process.env.COOKIE_MAX_AGE != null ? process.env.COOKIE_MAX_AGE : 1;
+
     const envVarsSchema: Joi.ObjectSchema = Joi.object({
       NODE_ENV: Joi.string()
         .valid(['development', 'production', 'test', 'provision'])
-        .default('development'),
-      PORT: Joi.number().default(3000),
-      REDIRECT_HOST: Joi.string().default('http://localhost'),
-      CLIENT_ID: Joi.string().required(),
-      CLIENT_SECRET: Joi.string().required(),
-      SESSION_SECRET: Joi.string().required(),
-      EXPIRES_DAYS: Joi.number().default(1),
-      COOKIE_MAX_AGE: Joi.number().default(1),
+        .default(nodeEnv),
+      PORT: Joi.number().default(port),
+      REDIRECT_HOST: Joi.string().default(host),
+      CLIENT_ID:
+        clientId != null
+          ? Joi.string().default(clientId)
+          : Joi.string().required(),
+      CLIENT_SECRET:
+        clientSecret != null
+          ? Joi.string().default(clientSecret)
+          : Joi.string().required(),
+      SESSION_SECRET:
+        sessionSecret != null
+          ? Joi.string().default(sessionSecret)
+          : Joi.string().required(),
+      EXPIRES_DAYS: Joi.number().default(expiresDays),
+      COOKIE_MAX_AGE: Joi.number().default(cookieMaxAge),
     });
 
     const { error, value: validatedEnvConfig } = Joi.validate(

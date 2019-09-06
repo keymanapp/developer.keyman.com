@@ -68,6 +68,22 @@ function updateFrontendWebdriver(cb) {
   runCommand2(cb, 'node_modules/.bin/webdriver-manager update', 'frontend/node_modules/protractor');
 }
 
+function installBackendCi(cb) {
+  runCommand(cb, 'npm ci');
+}
+
+function installFrontendCi(cb) {
+  runCommand2(cb, 'npm ci', 'frontend');
+}
+
+function deployBackend(cb) {
+  runCommand(cb, 'npm run prestart:prod')
+}
+
+function deployFrontend(cb) {
+  runCommand2(cb, 'npm run build:prod', 'frontend')
+}
+
 exports.default = series(
   parallel(installBackend,
     series(installFrontend, installFrontendWebdriver, updateFrontendWebdriver)),
@@ -79,11 +95,13 @@ exports.test = series(testBackend, testFrontend)
 exports.lint = series(lintBackend, lintFrontend)
 exports.e2e = series(e2eBackend, e2eFrontend)
 exports.install = series(installBackend, installFrontend)
+exports.installCi = series(installBackendCi, installFrontendCi)
 exports.cibuild = series(
   preInstallBackend,
-  parallel(installBackend,
-    series(installFrontend, installFrontendWebdriver, updateFrontendWebdriver)),
+  parallel(installBackendCi,
+    series(installFrontendCi, installFrontendWebdriver, updateFrontendWebdriver)),
   parallel(lintBackend, lintFrontend))
 exports.citest = series(
   parallel(testBackend, testFrontend),
   parallel(e2eBackend, e2eFrontend))
+exports.deploy = series(deployFrontend, deployBackend)

@@ -10,18 +10,14 @@ The backend is implemented with [nest](https://nestjs.com/), the included fronte
 
 ## Installation
 
-Install `node` version 10.15.3 and `npm` version 6.9.0. Then run the following commands:
+Install `node` version 10.x and `npm` version 6.9.0. Then run the following commands:
 
 ```bash
 # Install nestjs and angular
-$ npm i -g @nestjs/cli @angular/cli
+$ npm i -g @nestjs/cli @angular/cli gulp-cli
 
-# Install dependencies for backend
-$ npm i
-
-# Install dependencies for frontend
-$ cd frontend
-$ npm i
+# Install dependencies
+$ gulp install
 ```
 
 ## Preparation
@@ -39,40 +35,35 @@ _Client Secret_ that GitHub displays for the app. You should also replace the va
 ## Development
 
 ```bash
-# Build backend
-$ npm run build
+# Building (front- and backend)
+$ gulp build
 
 # Build backend (watching for changes)
 $ npm run build:watch
-
-# Build frontend
-$ cd frontend
-$ npm run build
 
 # Build frontend (watching for changes)
 $ cd frontend
 $ npm run build:watch
 ```
 
+**Note:** You can use the `gulp` default target to install, build, and run unit and
+e2e tests on back- and frontend with a single command:
+
+```bash
+$ gulp
+```
+
 ## Test
 
 ```bash
-# unit tests (backend)
-$ npm run test
+# unit tests (front- and backend)
+$ gulp test
+
+# e2e tests (front- and backend)
+$ gulp e2e
 
 # test coverage (backend)
 $ npm run test:cov
-
-# e2e tests (backend)
-$ npm run test:e2e
-
-# unit tests (frontend)
-$ cd frontend
-$ npm run test
-
-# e2e tests (frontend)
-$ cd frontend
-$ npm run test:e2e
 ```
 
 ## Running the app
@@ -88,6 +79,22 @@ $ npm run start:watch:dev
 
 # production mode
 $ npm run start:prod
+```
+
+## Deployment
+
+We use Docker to create a container that can be deployed to wherever:
+
+```bash
+$ docker-compose build
+```
+
+Before you can deploy to production, you'll have to create an OAuth App on GitHub and edit the file
+`production.env` (see above). Then you can run:
+
+```bash
+$ export NODE_ENV=production
+$ docker-compose up -d
 ```
 
 ## License

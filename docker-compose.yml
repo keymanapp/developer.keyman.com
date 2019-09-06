@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  keyman-developer:
+    build: .
+    ports:
+      - 3000:3000
+    env_file:
+      - ./${NODE_ENV}.env
+    command: node dist/main.js
