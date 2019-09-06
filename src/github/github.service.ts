@@ -1,13 +1,17 @@
 import { HttpService, Injectable } from '@nestjs/common';
 import { AxiosResponse, AxiosRequestConfig } from 'axios';
-import { Observable, of } from 'rxjs';
+import { Observable, of, empty } from 'rxjs';
+import { map, expand, concatMap } from 'rxjs/operators';
+
 import { TokenService } from '../token/token.service';
-import { ConfigService } from '../../config/config.service';
+import { ConfigService } from '../config/config.service';
+
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
 import { GitHubUser } from '../interfaces/git-hub-user.interface';
 
 const redirectUri = '/index.html';
 const scope = 'repo read:user user:email';
+interface GitHubProject { name: string; full_name?: string; owner?: { login: string; }; }
 
 @Injectable()
 export class GithubService {
@@ -69,22 +73,66 @@ export class GithubService {
     };
     return this.httpService.get(
       'https://github.com/login/oauth/access_token' +
-      `?client_id=${this.config.clientId}&client_secret=${this.config.clientSecret}` +
-      `&code=${code}&state=${state}`,
-      opt);
+        `?client_id=${this.config.clientId}&client_secret=${
+          this.config.clientSecret
+        }` +
+        `&code=${code}&state=${state}`,
+      opt,
+    );
   }
 
   public logout(): Observable<{ url: string }> {
     return of({ url: `${this.config.redirectHost}:${this.config.port}/` });
   }
 
-  public getUserInformation(token: string): Observable<AxiosResponse<GitHubUser | string>> {
+  public getUserInformation(
+    token: string,
+  ): Observable<AxiosResponse<GitHubUser | string>> {
     if (token == null || token.length === 0) {
       return null;
     }
-    return this.httpService.get(
-      'https://api.github.com/user',
-      { headers: { Authorization: token } },
+    return this.httpService.get('https://api.github.com/user', {
+      headers: { Authorization: token },
+    });
+  }
+
+  public getRepos(
+    token: string,
+    page: number,
+    pageSize: number,
+  ): Observable<GitHubProject> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
+
+    const url = `https://api.github.com/user/repos?type=public&sort=full_name&page=${page}&per_page=${pageSize}`;
+    return this.getReposPage(url, token).pipe(
+      expand(({ nextPageUrl }) => nextPageUrl ? this.getReposPage(nextPageUrl, token) : empty()),
+      concatMap(({ content }) => content),
     );
   }
+
+  private getReposPage(url: string, token: string): Observable<{ content: GitHubProject[], nextPageUrl: string | null }> {
+    return this.httpService
+      .get(url, { headers: { Authorization: token } })
+      .pipe(
+        map(response => ({
+          content: response.data,
+          nextPageUrl: this.getUrlOfNextPage(response),
+        })),
+      );
+  }
+
+  private getUrlOfNextPage(response: AxiosResponse): string | null {
+    let url: string | null = null;
+    const link = response.headers.link;
+    if (link) {
+      const match = link.match(/<([^>]+)>;\s*rel="next"/);
+      if (match) {
+        [, url] = match;
+      }
+    }
+    return url;
+  }
+
 }

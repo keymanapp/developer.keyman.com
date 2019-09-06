@@ -1,11 +1,12 @@
 import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { SESSION_STORAGE, WebStorageService } from 'angular-webstorage-service';
-import { Observable, of, Subject } from 'rxjs';
-import { map, tap, catchError } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 import { GitHubUser } from '../model/git-hub-user';
 import { environment } from '../../environments/environment';
+import { ErrorHelper } from '../utils/error-helper';
 
 const AccessTokenKey = 'access_token';
 const GitHubCodeKey = 'github_code';
@@ -28,40 +29,9 @@ export class UserService {
     private storage: WebStorageService,
   ) {}
 
-  private log(message: any): void {
-    console.log(message);
-  }
-
-  /**
-   * Handle Http operation that failed.
-   * Let the app continue.
-   * @param operation - name of the operation that failed
-   * @param result - optional value to return as the observable result
-   */
-  private handleError<T>(operation = 'operation', result?: T) {
-    return (error: any): Observable<T> => {
-      // TODO: send the error to remote logging infrastructure
-      console.error('got error:');
-      console.error(error); // log to console instead
-
-      // TODO: better job of transforming error for user consumption
-      this.log(`${operation} failed: ${error.message}`);
-
-      // Let the app keep running by returning an empty result.
-      return of(result as T);
-    };
-  }
-
   public login(): Observable<string> {
     return this.http.get<{ url: string }>(this.loginUrl).pipe(
-      catchError(this.handleError('GET login REST API', { url: '' })),
-      map(obj => obj.url),
-    );
-  }
-
-  private getUrl(): Observable<string> {
-    return this.http.get<{ url: string }>(this.loginUrl).pipe(
-      catchError(this.handleError('GET getUrl REST API', { url: '' })),
+      catchError(ErrorHelper.handleError('GET login REST API', { url: '' })),
       map(obj => obj.url),
     );
   }
@@ -74,10 +44,11 @@ export class UserService {
       })
       .pipe(
         catchError(
-          this.handleError(
+          ErrorHelper.handleError(
             `POST getAccessToken(${code}, ${state}) REST API`,
             { accessToken: '' },
-          )),
+          ),
+        ),
         map(obj => obj.accessToken),
       );
   }
@@ -134,8 +105,12 @@ export class UserService {
     this.storage.remove(GitHubStateKey);
 
     return this.http.delete<{ url: string }>(this.loginUrl).pipe(
-      catchError(this.handleError('DELETE login REST API', { url: '' })),
+      catchError(ErrorHelper.handleError('DELETE login REST API', { url: '' })),
       map(obj => obj.url),
     );
+  }
+
+  public isLoggedIn(): boolean {
+    return this.accessToken != null;
   }
 }

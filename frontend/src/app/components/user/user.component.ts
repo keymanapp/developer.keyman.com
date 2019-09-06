@@ -27,7 +27,7 @@ export class UserComponent implements OnInit {
   }
 
   public get isLoggedIn(): boolean {
-    return this.userService.accessToken != null;
+    return this.userService.isLoggedIn();
   }
 
   public logout(): void {

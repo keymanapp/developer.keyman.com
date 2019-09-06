@@ -8,6 +8,8 @@ import { AngularModule } from './angular/angular.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
+import { ProjectsModule } from './projects/projects.module';
+import { GithubModule } from './github/github.module';
 
 import memoryStoreModule = require('memorystore');
 const MemoryStore = memoryStoreModule(expressSession);
@@ -19,6 +21,8 @@ const MemoryStore = memoryStoreModule(expressSession);
     }),
     AuthModule,
     ConfigModule,
+    ProjectsModule,
+    GithubModule,
   ],
   controllers: [],
   providers: [],

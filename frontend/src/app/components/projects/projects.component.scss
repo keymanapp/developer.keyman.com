@@ -1,0 +1,69 @@
+.projects {
+  padding: 0px 40px 0px 40px;
+  display: grid;
+  grid-gap: 20px;
+  justify-content: space-evenly;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  list-style-type: none;
+}
+
+.projects li {
+  border: 1px solid black;
+  justify-content: center;
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+.projects li div {
+  display: block;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  bottom: 0;
+}
+
+.projects .enabled {
+  cursor: pointer;
+  color: darkslategray;
+  background-color: #EEE;
+}
+
+.projects .enabled:hover {
+  color: darkgray;
+  background-color: #DDD;
+  left: .1em;
+}
+
+.projects a {
+  display: block;
+  padding: 20px 0;
+  height: 100%;
+  width: 100%;
+  color: darkslategray;
+  text-decoration: none;
+}
+
+.projects a:hover {
+  color:darkgray;
+}
+
+.projects .disabled {
+  cursor: default;
+  color: darkslategray;
+  background-color: #EEE;
+}
+
+.disabled > div {
+  display: block;
+  padding: 20px 0;
+  height: 100%;
+  width: 100%;
+  color: lightgray;
+  overflow: hidden;
+}
+
+.disabled:hover {
+  color: lightgray;
+  background-color: #EEE;
+  left: .1em;
+}

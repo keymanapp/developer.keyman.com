@@ -1,11 +1,13 @@
 @import 'constants';
 
 .header {
-  font-family: 'Gill Sans', 'Gill Sans MT', 'Calibri', 'Trebuchet MS', 'sans-serif';
+  font-family: $fonts;
   position: relative;
   background-color: $header-bg-color;
   height: $header-height;
   margin: 0;
+  overflow: hidden;
+  text-overflow: clip;
 }
 
 .header h1 {
