@@ -1,0 +1,12 @@
+<p>Below are your repositories from GitHub. Please select a single-keyboard project.</p>
+<ul class='projects'>
+  <li *ngFor='let project of projects'>
+    <div *ngIf="project.enabled" class="enabled">
+      <a routerLink="/api/projects/{{project.name}}">
+        {{project.name}}
+      </a>
+    </div>
+    <div *ngIf="!project.enabled" class="disabled"><div>{{project.name}}</div></div>
+  </li>
+</ul>
+<p><a href='#'>I don't see my keyboard project</a></p>

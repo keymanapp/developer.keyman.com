@@ -15,4 +15,18 @@ describe('UserService', () => {
     const service: UserService = TestBed.get(UserService);
     expect(service).toBeTruthy();
   });
+
+  it('isLoggedIn should return true if we have an accesstoken', () => {
+    const service: UserService = TestBed.get(UserService);
+    service.accessToken = 'foo';
+
+    expect(service.isLoggedIn()).toBeTruthy();
+  });
+
+  it('isLoggedIn should return false if we don\'t have an accesstoken', () => {
+    const service: UserService = TestBed.get(UserService);
+    service.accessToken = null;
+
+    expect(service.isLoggedIn()).toBeFalsy();
+  });
 });

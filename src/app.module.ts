@@ -2,11 +2,12 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { CookieParserMiddleware } from '@nest-middlewares/cookie-parser';
 import { HelmetMiddleware } from '@nest-middlewares/helmet';
 import { ExpressSessionMiddleware } from '@nest-middlewares/express-session';
-
 import { AngularModule } from './angular/angular.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
+import { ProjectsModule } from './projects/projects.module';
+import { GithubModule } from './github/github.module';
 
 @Module({
   imports: [
@@ -15,6 +16,8 @@ import { ConfigService } from './config/config.service';
     }),
     AuthModule,
     ConfigModule,
+    ProjectsModule,
+    GithubModule,
   ],
   controllers: [],
   providers: [],

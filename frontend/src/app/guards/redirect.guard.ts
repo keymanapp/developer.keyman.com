@@ -8,7 +8,7 @@ import {
   Router,
 } from '@angular/router';
 import { Observable } from 'rxjs';
-import { UserService } from './user.service';
+import { UserService } from '../services/user.service';
 
 @Injectable({
   providedIn: 'root',
@@ -36,7 +36,7 @@ export class RedirectGuard implements CanActivate {
           this.userService.accessToken = token;
           this.userService.getUserProfile().subscribe(user => {
             this.userService.userProfile = user;
-            this.router.navigate(['/'], { replaceUrl: true });
+            this.router.navigate(['/projects'], { replaceUrl: true });
           });
         } else {
           this.router.navigate(['/'], { replaceUrl: true });

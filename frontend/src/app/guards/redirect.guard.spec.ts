@@ -25,7 +25,7 @@ describe('RedirectGuard', () => {
     });
   });
 
-  it('should ...', inject([RedirectGuard], (guard: RedirectGuard) => {
-    expect(guard).toBeTruthy();
+  it('should ...', inject([RedirectGuard], (sut: RedirectGuard) => {
+    expect(sut).toBeTruthy();
   }));
 });

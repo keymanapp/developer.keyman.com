@@ -11,6 +11,7 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { UserComponent } from './components/user/user.component';
 import { LoginComponent } from './components/login/login.component';
+import { ProjectsComponent } from './components/projects/projects.component';
 
 describe('AppComponent', () => {
   beforeEach(() => {
@@ -23,7 +24,7 @@ describe('AppComponent', () => {
         FontAwesomeModule,
         AppRoutingModule,
       ],
-      declarations: [AppComponent, UserComponent, LoginComponent],
+      declarations: [AppComponent, UserComponent, LoginComponent, ProjectsComponent],
       providers: [ {provide: APP_BASE_HREF, useValue: './' } ]
     }).compileComponents();
   });

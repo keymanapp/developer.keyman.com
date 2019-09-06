@@ -11,7 +11,7 @@ export async function callWithErrorHandling<T extends { error?: string}, R>(
   extractData: (response: AxiosResponse<R>) => T,
   type: NoParamConstructor<T>,
 ): Promise<T> {
-    let token: T;
+    let data: T;
     let status = 200;
     try {
       const response = await method().toPromise();
@@ -21,19 +21,19 @@ export async function callWithErrorHandling<T extends { error?: string}, R>(
       ) {
         // console.log('*** got error string:');
         // console.log(response.data);
-        token = new type();
-        token.error = response.data as string;
+        data = new type();
+        data.error = response.data as string;
         status = 400;
       } else {
         // console.log('**** got response:');
         // console.log(response);
-        token = extractData(response);
+        data = extractData(response);
       }
     } catch (error) {
       // console.log('*** caught error:');
       // console.log(error);
-      token = new type();
-      token.error = error.message;
+      data = new type();
+      data.error = error.message;
       if (error.response != null) {
         status = error.response.status;
       } else {
@@ -41,8 +41,8 @@ export async function callWithErrorHandling<T extends { error?: string}, R>(
       }
     }
 
-    if (token.error == null) {
-      return token;
+    if (data.error == null) {
+      return data;
     }
-    throw new HttpException(token, status);
+    throw new HttpException(data, status);
 }

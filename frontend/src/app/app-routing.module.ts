@@ -1,7 +1,9 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
-import { RedirectGuard } from './services/redirect.guard';
+import { RedirectGuard } from './guards/redirect.guard';
 import { LoginComponent } from './components/login/login.component';
+import { ProjectsComponent } from './components/projects/projects.component';
+import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
   {
@@ -9,6 +11,11 @@ const routes: Routes = [
     component: LoginComponent,
     pathMatch: 'full',
     canActivate: [RedirectGuard],
+  },
+  {
+    path: 'projects',
+    component: ProjectsComponent,
+    canActivate: [AuthGuard],
   },
   {
     path: '**',
