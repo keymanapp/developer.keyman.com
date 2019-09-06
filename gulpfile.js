@@ -1,5 +1,6 @@
 const { series, parallel } = require('gulp');
 const exec = require('child_process').exec;
+const run = require('gulp-run-command').default;
 
 function runCommand(cb, cmd) {
   exec(cmd, function (err, stdout, stderr) {
@@ -7,6 +8,12 @@ function runCommand(cb, cmd) {
     console.log(stderr);
     cb(err);
   });
+}
+
+function runCommand2(done, cmd, workDir) {
+  run(cmd, {
+    cwd: workDir
+  })().then(done);
 }
 
 function buildBackend(cb) {
@@ -38,19 +45,32 @@ function e2eBackend(cb) {
 }
 
 function e2eFrontend(cb) {
-  runCommand(cb, 'cd frontend && npm run test:e2e');
+  runCommand2(cb, 'npm run test:e2e', 'frontend');
 }
 
 function installBackend(cb) {
   runCommand(cb, 'npm install');
 }
 
+function preInstallBackend(cb) {
+  runCommand(cb, 'npm install gulp-run-command')
+}
+
 function installFrontend(cb) {
-  runCommand(cb, 'cd frontend && npm install');
+  runCommand2(cb, 'npm install', 'frontend');
+}
+
+function installFrontendWebdriver(cb) {
+  runCommand2(cb, 'npm install webdriver-manager@latest', 'frontend/node_modules/protractor');
+}
+
+function updateFrontendWebdriver(cb) {
+  runCommand2(cb, 'node_modules/.bin/webdriver-manager update', 'frontend/node_modules/protractor');
 }
 
 exports.default = series(
-  parallel(installBackend, installFrontend),
+  parallel(installBackend,
+    series(installFrontend, installFrontendWebdriver, updateFrontendWebdriver)),
   parallel(lintBackend, lintFrontend),
   parallel(testBackend, testFrontend),
   parallel(e2eBackend, e2eFrontend))
@@ -60,7 +80,9 @@ exports.lint = series(lintBackend, lintFrontend)
 exports.e2e = series(e2eBackend, e2eFrontend)
 exports.install = series(installBackend, installFrontend)
 exports.cibuild = series(
-  parallel(installBackend, installFrontend),
+  preInstallBackend,
+  parallel(installBackend,
+    series(installFrontend, installFrontendWebdriver, updateFrontendWebdriver)),
   parallel(lintBackend, lintFrontend))
 exports.citest = series(
   parallel(testBackend, testFrontend),
