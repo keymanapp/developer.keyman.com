@@ -19,7 +19,7 @@ FROM node:lts AS builder
 WORKDIR /usr/src/app
 COPY . .
 RUN npm install -g gulp-cli gulp && \
-  npm link gulp && \
+  npm install gulp-run-command && \
   gulp installCi
 ENV NODE_ENV=production
 RUN gulp deploy

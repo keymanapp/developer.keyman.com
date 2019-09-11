@@ -22,7 +22,7 @@ export class GithubService {
   ) {}
 
   private getRedirectUri(): string {
-    return `${this.config.redirectHost}:${this.config.port}${redirectUri}`;
+    return `${this.config.redirectHost}${redirectUri}`;
   }
 
   public login(session: any): Observable<{ url: string }> {
@@ -82,7 +82,7 @@ export class GithubService {
   }
 
   public logout(): Observable<{ url: string }> {
-    return of({ url: `${this.config.redirectHost}:${this.config.port}/` });
+    return of({ url: `${this.config.redirectHost}/` });
   }
 
   public getUserInformation(
