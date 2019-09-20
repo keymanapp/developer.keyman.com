@@ -65,7 +65,14 @@ function installFrontendWebdriver(cb) {
 }
 
 function updateFrontendWebdriver(cb) {
-  runCommand2(cb, 'node_modules/.bin/webdriver-manager update', 'frontend/node_modules/protractor');
+  // Set the CHROMEDRIVER_VERSION environment variable to the chromedriver version that
+  // fits the installed chrome version. Not setting the variable will use the latest
+  // chromedriver. Note: you'll have to specify the full version number, e.g. 77.0.3865.40
+  // which can be found on https://chromedriver.storage.googleapis.com/.
+  const driverVersion = process.env.CHROMEDRIVER_VERSION !== '' ? process.env.CHROMEDRIVER_VERSION : 'latest';
+
+  runCommand2(cb, `node_modules/.bin/webdriver-manager update --versions.chrome ${driverVersion}`,
+    'frontend/node_modules/protractor');
 }
 
 function installBackendCi(cb) {
