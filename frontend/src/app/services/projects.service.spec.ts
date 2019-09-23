@@ -1,5 +1,7 @@
+import { APP_BASE_HREF } from '@angular/common';
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { RouterModule } from '@angular/router';
 import { StorageServiceModule } from 'angular-webstorage-service';
 
 import { ProjectsService } from './projects.service';
@@ -9,8 +11,18 @@ describe('ProjectsService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [StorageServiceModule, HttpClientTestingModule],
-      providers: [ProjectsService],
+      imports: [
+        StorageServiceModule,
+        HttpClientTestingModule,
+        RouterModule.forRoot([
+          {
+            path: '',
+            redirectTo: '/',
+            pathMatch: 'full',
+          },
+        ]),
+      ],
+      providers: [ProjectsService, { provide: APP_BASE_HREF, useValue: './' }],
     });
   });
 

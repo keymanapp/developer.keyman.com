@@ -1,6 +1,8 @@
 # Dockerfile for Keyman Developer Online
 # Build with: docker build -t kdo .
 # Run with: docker run --env-file production.env kdo
+# or even easier:
+# docker-compose build && docker-compose up
 
 # First stage
 FROM node:lts AS base
@@ -17,7 +19,7 @@ FROM node:lts AS builder
 WORKDIR /usr/src/app
 COPY . .
 RUN npm install -g gulp-cli gulp && \
-  npm link gulp && \
+  npm install gulp-run-command && \
   gulp installCi
 ENV NODE_ENV=production
 RUN gulp deploy

@@ -46,7 +46,7 @@ export class AppModule implements NestModule {
 
     const cookie = {
       maxAge: this.configService.cookieMaxAge,
-      httpOnly: false,
+      httpOnly: true,
       secure: true,
       expires: new Date(
         new Date().getTime() +

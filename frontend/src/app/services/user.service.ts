@@ -1,17 +1,12 @@
 import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { SESSION_STORAGE, WebStorageService } from 'angular-webstorage-service';
 import { Observable } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 import { GitHubUser } from '../model/git-hub-user';
 import { environment } from '../../environments/environment';
 import { ErrorHelper } from '../utils/error-helper';
-
-const AccessTokenKey = 'access_token';
-const GitHubCodeKey = 'github_code';
-const GitHubStateKey = 'github_state';
-const ProfileKey = 'userprofile';
+import { User } from '../model/user';
 
 @Injectable({
   providedIn: 'root',
@@ -19,19 +14,18 @@ const ProfileKey = 'userprofile';
 export class UserService {
   private loginUrl = `${environment.apiUrl}/auth/login`;
   private userProfileUrl = `${environment.apiUrl}/auth/user`;
-  private token: string;
   private gitHubUserProfile: GitHubUser;
 
   constructor(
     private http: HttpClient,
 
-    @Inject(SESSION_STORAGE)
-    private storage: WebStorageService,
+    private errorHelper: ErrorHelper,
+    private user: User,
   ) {}
 
   public login(): Observable<string> {
     return this.http.get<{ url: string }>(this.loginUrl).pipe(
-      catchError(ErrorHelper.handleError('GET login REST API', { url: '' })),
+      catchError(this.errorHelper.handleError('GET login REST API', { url: '' })),
       map(obj => obj.url),
     );
   }
@@ -44,7 +38,7 @@ export class UserService {
       })
       .pipe(
         catchError(
-          ErrorHelper.handleError(
+          this.errorHelper.handleError(
             `POST getAccessToken(${code}, ${state}) REST API`,
             { accessToken: '' },
           ),
@@ -55,57 +49,50 @@ export class UserService {
 
   public getUserProfile(): Observable<GitHubUser> {
     return this.http.get<GitHubUser>(this.userProfileUrl, {
-      headers: { Authorization: `token ${this.token}` },
+      headers: { Authorization: `token ${this.accessToken}` },
     });
   }
 
   public get accessToken(): string {
-    if (this.token == null) {
-      this.token = this.storage.get(AccessTokenKey);
-    }
-    return this.token;
+    return this.user.accessToken;
   }
 
   public set accessToken(value: string) {
-    this.token = value;
-    this.storage.set(AccessTokenKey, value);
+    this.user.accessToken = value;
   }
 
   public get gitHubCode(): string {
-    return this.storage.get(GitHubCodeKey);
+    return this.user.gitHubCode;
   }
 
   public set gitHubCode(value: string) {
-    this.storage.set(GitHubCodeKey, value);
+    this.user.gitHubCode = value;
   }
 
   public get gitHubState(): string {
-    return this.storage.get(GitHubStateKey);
+    return this.user.gitHubState;
   }
 
   public set gitHubState(value: string) {
-    this.storage.set(GitHubStateKey, value);
+    this.user.gitHubState = value;
   }
 
   public get userProfile(): GitHubUser {
     if (this.gitHubUserProfile == null) {
-      this.gitHubUserProfile = this.storage.get(ProfileKey);
+      this.gitHubUserProfile = this.user.userProfile;
     }
     return this.gitHubUserProfile;
   }
 
   public set userProfile(value: GitHubUser) {
-    this.storage.set(ProfileKey, value);
+    this.user.userProfile = value;
   }
 
   public logout(): Observable<string> {
-    this.storage.remove(AccessTokenKey);
-    this.storage.remove(ProfileKey);
-    this.storage.remove(GitHubCodeKey);
-    this.storage.remove(GitHubStateKey);
+    this.user.clear();
 
     return this.http.delete<{ url: string }>(this.loginUrl).pipe(
-      catchError(ErrorHelper.handleError('DELETE login REST API', { url: '' })),
+      catchError(this.errorHelper.handleError('DELETE login REST API', { url: '' })),
       map(obj => obj.url),
     );
   }
