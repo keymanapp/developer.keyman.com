@@ -47,7 +47,7 @@ export class ConfigService {
 
     const envVarsSchema: Joi.ObjectSchema = Joi.object({
       NODE_ENV: Joi.string()
-        .valid(['development', 'production', 'test', 'provision'])
+        .valid('development', 'production', 'test', 'provision')
         .default(nodeEnv),
       PORT: Joi.number().default(port),
       REDIRECT_HOST: Joi.string().default(host),
@@ -67,10 +67,7 @@ export class ConfigService {
       COOKIE_MAX_AGE: Joi.number().default(cookieMaxAge),
     });
 
-    const { error, value: validatedEnvConfig } = Joi.validate(
-      envConfig,
-      envVarsSchema,
-    );
+    const { error, value: validatedEnvConfig } = envVarsSchema.validate(envConfig);
     if (error) {
       throw new Error(`Config validation error: ${error.message}`);
     }

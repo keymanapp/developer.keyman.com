@@ -13,6 +13,7 @@ describe('AuthGuard', () => {
       session: { login: 'foo' },
     }));
     const Mock = jest.fn<ExecutionContext, any[]>(() => ({
+      getType: jest.fn(),
       getClass: jest.fn(),
       getHandler: jest.fn(),
       getArgs: jest.fn(),
@@ -36,6 +37,7 @@ describe('AuthGuard', () => {
       session: { login: undefined },
     }));
     const Mock = jest.fn<ExecutionContext, any[]>(() => ({
+      getType: jest.fn(),
       getClass: jest.fn(),
       getHandler: jest.fn(),
       getArgs: jest.fn(),
@@ -60,6 +62,7 @@ describe('AuthGuard', () => {
       session: { login: undefined },
     }));
     const Mock = jest.fn<ExecutionContext, any[]>(() => ({
+      getType: jest.fn(),
       getClass: jest.fn(),
       getHandler: jest.fn(),
       getArgs: jest.fn(),
@@ -84,6 +87,7 @@ describe('AuthGuard', () => {
         session: { login: 'foo' },
       }));
       const Mock = jest.fn<ExecutionContext, any[]>(() => ({
+        getType: jest.fn(),
         getClass: jest.fn(),
         getHandler: jest.fn(),
         getArgs: jest.fn(),
