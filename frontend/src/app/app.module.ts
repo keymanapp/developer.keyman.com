@@ -2,8 +2,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
 import { StorageServiceModule } from 'angular-webstorage-service';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
 import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -30,8 +29,8 @@ import { ProjectsComponent } from './components/projects/projects.component';
   bootstrap: [AppComponent],
 })
 export class AppModule {
-  constructor() {
-    // use Fontawesome SignOut symbol
-    library.add(faSignOutAlt);
+  constructor(library: FaIconLibrary) {
+    // use Fontawesome SignOut and Spinner symbols
+    library.addIcons(faSignOutAlt);
   }
 }
