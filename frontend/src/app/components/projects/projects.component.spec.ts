@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientModule } from '@angular/common/http';
 import { RouterTestingModule } from '@angular/router/testing';
 import { StorageServiceModule } from 'angular-webstorage-service';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 import { ProjectsComponent } from './projects.component';
 
@@ -11,7 +12,7 @@ describe('ProjectsComponent', () => {
 
   beforeEach((() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientModule, StorageServiceModule, RouterTestingModule],
+      imports: [HttpClientModule, StorageServiceModule, RouterTestingModule, FontAwesomeModule],
       declarations: [ProjectsComponent],
     }).compileComponents();
   }));

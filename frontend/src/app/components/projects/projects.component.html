@@ -1,5 +1,5 @@
 <p>Below are your repositories from GitHub. Please select a single-keyboard project.</p>
-<ul class='projects'>
+<ul class='projects' *ngIf="projects.length">
   <li *ngFor='let project of projects'>
     <div *ngIf="project.enabled" class="enabled">
       <a routerLink="/api/projects/{{project.name}}">
@@ -9,4 +9,7 @@
     <div *ngIf="!project.enabled" class="disabled"><div>{{project.name}}</div></div>
   </li>
 </ul>
+<div class="no-projects">
+  <fa-icon icon="spinner" spin="true" size="5x"></fa-icon>
+</div>
 <p><a href='#'>I don't see my keyboard project</a></p>
