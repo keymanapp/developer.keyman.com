@@ -66,6 +66,9 @@ $ gulp e2e
 $ npm run test:cov
 ```
 
+**NOTE:** You might have to set the `CHROMEDRIVER_VERSION` environment variable to the
+installed Chrome version, e.g. `export CHROMEDRIVER_VERSION=76.0.3809.100`.
+
 ## Running the app
 
 **Note:** you'll have to build the frontend first!
