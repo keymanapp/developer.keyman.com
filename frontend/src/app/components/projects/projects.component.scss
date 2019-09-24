@@ -67,3 +67,11 @@
   background-color: #EEE;
   left: .1em;
 }
+
+.no-projects {
+  text-align: center;
+}
+
+ul + .no-projects {
+  display: none;
+}
