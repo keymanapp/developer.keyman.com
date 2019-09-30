@@ -10,6 +10,7 @@ import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
 import { ProjectsModule } from './projects/projects.module';
 import { GithubModule } from './github/github.module';
+import { GitService } from './git/git.service';
 
 import memoryStoreModule = require('memorystore');
 const MemoryStore = memoryStoreModule(expressSession);
@@ -25,7 +26,7 @@ const MemoryStore = memoryStoreModule(expressSession);
     GithubModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [GitService],
 })
 export class AppModule implements NestModule {
   constructor(private readonly configService: ConfigService) { }
