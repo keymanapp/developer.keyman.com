@@ -44,6 +44,7 @@ export class ConfigService {
     const sessionSecret = process.env.SESSION_SECRET;
     const expiresDays = process.env.EXPIRES_DAYS != null ? process.env.EXPIRES_DAYS : 1;
     const cookieMaxAge = process.env.COOKIE_MAX_AGE != null ? process.env.COOKIE_MAX_AGE : 1;
+    const workDirectory = process.env.WORKDIR != null ? process.env.WORKDIR : '/tmp';
 
     const envVarsSchema: Joi.ObjectSchema = Joi.object({
       NODE_ENV: Joi.string()
@@ -65,6 +66,7 @@ export class ConfigService {
           : Joi.string().required(),
       EXPIRES_DAYS: Joi.number().default(expiresDays),
       COOKIE_MAX_AGE: Joi.number().default(cookieMaxAge),
+      WORKDIR: Joi.string().default(workDirectory),
     });
 
     const { error, value: validatedEnvConfig } = envVarsSchema.validate(envConfig);
@@ -104,5 +106,9 @@ export class ConfigService {
 
   public get cookieMaxAge(): number {
     return Number(this.envConfig.COOKIE_MAX_AGE);
+  }
+
+  public get workDirectory(): string {
+    return this.envConfig.WORKDIR;
   }
 }
