@@ -20,7 +20,6 @@ describe('GitService', () => {
     const prefix = path.join(os.tmpdir(), 'gitrepotest-');
     tmpDir = fs.mkdtempSync(prefix);
     sut = module.get<GitService>(GitService);
-    sut.workingDirectory = tmpDir;
   });
 
   afterEach(() => {
@@ -36,42 +35,37 @@ describe('GitService', () => {
     const filePath2 = path.join(repoDir, 'somefile2.txt');
     fs.appendFileSync(filePath1, 'some text');
     fs.appendFileSync(filePath2, 'other text');
-    await Promise.all([service.addFile(filePath1), service.addFile(filePath2)]);
-    return service.commit(msg);
+    await Promise.all([service.addFile(repoDir, filePath1), service.addFile(repoDir, filePath2)]);
+    return await service.commit(repoDir, msg);
   }
 
   async function addCommit(
     service: GitService,
+    repoDir: string,
     file: string,
     textToAppend: string,
     commitMessage: string): Promise<CommitSummary> {
     fs.appendFileSync(file, textToAppend);
-    await service.addFile(file);
-    return service.commit(commitMessage);
+    await service.addFile(repoDir, file);
+    return await service.commit(repoDir, commitMessage);
   }
 
   it('should be defined', () => {
     expect(sut).toBeDefined();
   });
 
-  it('Can set and get workingDirectory', () => {
-    sut.workingDirectory = '/tmp/foo';
-    expect(sut.workingDirectory).toEqual('/tmp/foo');
-  });
-
   it('Can create git repo', async () => {
     expect.assertions(2);
-    const dir = await sut.createRepo('mytest');
-    expect(dir).toEqual(path.join(tmpDir, 'mytest'));
-    expect(
-      fs.existsSync(path.join(tmpDir, 'mytest', '.git')),
-    ).toBeTruthy();
+    const expectedRepoDir = path.join(tmpDir, 'mytest');
+    const dir = await sut.createRepo(expectedRepoDir);
+    expect(dir).toEqual(expectedRepoDir);
+    expect(fs.existsSync(path.join(expectedRepoDir, '.git'))).toBeTruthy();
   });
 
   it('can add files and commit', async () => {
     expect.assertions(2);
 
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     const commitSummary = await createInitialCommit(sut, repoDir);
 
     expect(commitSummary.branch).toEqual('master');
@@ -80,47 +74,58 @@ describe('GitService', () => {
 
   it('can determine latest commit', async () => {
     expect.assertions(2);
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     await createInitialCommit(sut, repoDir);
-    const secondCommit = await addCommit(sut, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit');
+    const secondCommit = await addCommit(sut, repoDir, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit');
 
-    const log = await sut.log();
+    const log = await sut.log(repoDir);
     const expected = new RegExp(`^${secondCommit.commit}.+`);
     expect(log.latest.hash).toMatch(expected);
     expect(log.total).toEqual(1);
   });
 
-  it('can clone the repo', async () => {
-    expect.assertions(3);
+  it('fails clone if relative path', async () => {
+    expect.assertions(1);
 
     // Setup
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     await createInitialCommit(sut, repoDir);
 
     // Execute/Verify
-    await sut.clone(repoDir, 'clonedRepo').then(cloneDir => {
-      expect(fs.existsSync(path.join(cloneDir, '.git'))).toBeTruthy();
-      expect(fs.existsSync(path.join(cloneDir, 'somefile1.txt'))).toBeTruthy();
-      expect(fs.existsSync(path.join(cloneDir, 'somefile2.txt'))).toBeTruthy();
-    });
+    await expect(sut.clone(repoDir, 'clonedRepo')).rejects.toEqual(new Error('relative path'));
+  });
+
+  it('can clone the repo with correct path if localname contains full path', async () => {
+    expect.assertions(4);
+
+    // Setup
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
+    await createInitialCommit(sut, repoDir);
+
+    // Execute/Verify
+    const cloneDir = await sut.clone(repoDir, path.join(tmpDir, 'clonedRepo'));
+    expect(cloneDir).toEqual(path.join(tmpDir, 'clonedRepo'));
+    expect(fs.existsSync(path.join(cloneDir, '.git'))).toBeTruthy();
+    expect(fs.existsSync(path.join(cloneDir, 'somefile1.txt'))).toBeTruthy();
+    expect(fs.existsSync(path.join(cloneDir, 'somefile2.txt'))).toBeTruthy();
   });
 
   it('can export and import patch', async () => {
     expect.assertions(2);
 
     // Setup
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     const commit = await createInitialCommit(sut, repoDir);
 
     // Execute
-    const patch = await sut.export('HEAD');
+    const patch = await sut.export(repoDir, 'HEAD');
     expect(patch).toEqual(path.join(repoDir, '0001-my-commit-message.patch'));
 
-    const secondRepoDir = await sut.createRepo('secondRepo');
-    await sut.import(patch);
+    const secondRepoDir = await sut.createRepo(path.join(tmpDir, 'secondRepo'));
+    await sut.import(secondRepoDir, patch);
 
     // Verify
-    const log = await sut.log();
+    const log = await sut.log(secondRepoDir);
     expect(log.total).toEqual(1);
   });
 
@@ -128,16 +133,21 @@ describe('GitService', () => {
     expect.assertions(5);
 
     // Setup
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     await createInitialCommit(sut, repoDir);
 
     // Execute
-    await sut.checkoutBranch('test');
-    await addCommit(sut, path.join(repoDir, 'somefile1.txt'),
-      'Additional text', 'commit on test branch');
+    await sut.checkoutBranch(repoDir, 'test');
+    await addCommit(
+      sut,
+      repoDir,
+      path.join(repoDir, 'somefile1.txt'),
+      'Additional text',
+      'commit on test branch',
+    );
 
     // Verify
-    const branchSummary = await sut.getBranches();
+    const branchSummary = await sut.getBranches(repoDir);
     expect(branchSummary.all).toContain('test');
     expect(branchSummary.current).toEqual('test');
     expect(branchSummary.branches.test.label).toEqual('commit on test branch');
@@ -149,21 +159,22 @@ describe('GitService', () => {
     expect.assertions(5);
 
     // Setup
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     await createInitialCommit(sut, repoDir);
-    await sut.checkoutBranch('test');
+    await sut.checkoutBranch(repoDir, 'test');
     await addCommit(
       sut,
+      repoDir,
       path.join(repoDir, 'somefile1.txt'),
       'Additional text',
       'commit on test branch',
     );
 
     // Execute
-    await sut.checkoutBranch('test');
+    await sut.checkoutBranch(repoDir, 'test');
 
     // Verify
-    const branchSummary = await sut.getBranches();
+    const branchSummary = await sut.getBranches(repoDir);
     expect(branchSummary.all).toContain('test');
     expect(branchSummary.current).toEqual('test');
     expect(branchSummary.branches.test.label).toEqual('commit on test branch');
@@ -177,12 +188,12 @@ describe('GitService', () => {
     expect.assertions(1);
 
     // Setup
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     await createInitialCommit(sut, repoDir);
-    await sut.checkoutBranch('test');
+    await sut.checkoutBranch(repoDir, 'test');
 
     // Execute
-    const isBranch = await sut.isBranch('test');
+    const isBranch = await sut.isBranch(repoDir, 'test');
 
     // Verify
     expect(isBranch).toBeTruthy();
@@ -192,57 +203,60 @@ describe('GitService', () => {
     expect.assertions(2);
 
     // Setup
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     await createInitialCommit(sut, repoDir);
-    await sut.checkoutBranch('test');
+    await sut.checkoutBranch(repoDir, 'test');
 
     // Execute/Verify
-    expect(await sut.currentBranch()).toEqual('test');
-    await sut.checkoutBranch('master');
-    expect(await sut.currentBranch()).toEqual('master');
+    expect(await sut.currentBranch(repoDir)).toEqual('test');
+    await sut.checkoutBranch(repoDir, 'master');
+    expect(await sut.currentBranch(repoDir)).toEqual('master');
   });
 
   it('can push', async () => {
+    expect.assertions(1);
+
     // Setup
-    const bareRepoDir = await sut.createRepo('bareRepo', true);
-    const clonedDir = await sut.clone(bareRepoDir, 'clonedRepo');
+    const bareRepoDir = await sut.createRepo(path.join(tmpDir, 'bareRepo'), true);
+    const clonedDir = await sut.clone(bareRepoDir, path.join(tmpDir, 'clonedRepo'));
     await createInitialCommit(sut, clonedDir);
     const commit = await addCommit(
       sut,
+      clonedDir,
       path.join(clonedDir, 'somefile1.txt'),
       'Additional text',
       'commit on test branch',
     );
 
     // Execute
-    await sut.push('origin', 'master');
+    await sut.push(clonedDir, 'origin', 'master');
 
     // Verify
-    await sut.setRepoDirectory(bareRepoDir);
-    const log = await sut.log();
+    const log = await sut.log(bareRepoDir);
     const expected = new RegExp(`^${commit.commit}.+`);
     expect(log.latest.hash).toMatch(expected);
   });
 
   it('can pull', async () => {
+    expect.assertions(1);
+
     // Setup
-    const repoDir = await sut.createRepo('mytest');
+    const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
     await createInitialCommit(sut, repoDir);
-    const clonedDir = await sut.clone(repoDir, 'clonedRepo');
-    await sut.setRepoDirectory(repoDir);
+    const clonedDir = await sut.clone(repoDir, path.join(tmpDir, 'clonedRepo'));
     const commit = await addCommit(
       sut,
+      repoDir,
       path.join(repoDir, 'somefile1.txt'),
       'Additional text',
       'commit on test branch',
     );
-    await sut.setRepoDirectory(clonedDir);
 
     // Execute (pull from mytest to clonedRepo)
-    await sut.pull('origin', 'master');
+    await sut.pull(clonedDir, 'origin', 'master');
 
     // Verify
-    const log = await sut.log();
+    const log = await sut.log(clonedDir);
     const expected = new RegExp(`^${commit.commit}.+`);
     expect(log.latest.hash).toMatch(expected);
   });
