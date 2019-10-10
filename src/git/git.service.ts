@@ -8,8 +8,6 @@ import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typi
 
 @Injectable()
 export class GitService {
-  private workDir: string;
-  private repoDir: string;
   private git: simplegit.SimpleGit;
 
   constructor() {
@@ -27,38 +25,36 @@ export class GitService {
   }
   */
 
-  public set workingDirectory(dir: string) {
-    this.workDir = dir;
+  private async addDefaultConfig(): Promise<void> {
+    // Set default values
+    await this.git.addConfig('user.name', 'Keyman Developer Online');
+    await this.git.addConfig('user.email', 'kdo@example.com');
+    await this.git.addConfig('commit.gpgSign', 'false');
   }
 
-  public get workingDirectory(): string {
-    return this.workDir;
-  }
-
-  public async setRepoDirectory(dir: string): Promise<string> {
-    this.repoDir = dir;
-    return this.git.cwd(dir);
-  }
-
-  public get repoDirectory(): string {
-    return this.repoDir;
-  }
-
-  public async createRepo(name: string, bare: boolean = false): Promise<string> {
-    this.repoDir = path.join(this.workDir, name);
-    fs.mkdirSync(this.repoDir);
-    await this.git.cwd(this.repoDir).then(async () => {
+  public async createRepo(
+    repoPath: string,
+    bare: boolean = false,
+  ): Promise<string> {
+    fs.mkdirSync(repoPath);
+    await this.git.cwd(repoPath).then(async () => {
       await this.git.init(bare);
+      await this.addDefaultConfig();
     });
-    return this.repoDir;
+    return repoPath;
   }
 
-  public addFile(filename: string): Promise<void> {
-    return this.git.add(filename);
+  public async addFile(repoDir: string, filename: string): Promise<void> {
+    await this.git.cwd(repoDir);
+    return await this.git.add(filename);
   }
 
-  public commit(message: string): Promise<CommitSummary> {
-    return this.git.commit(message);
+  public async commit(
+    repoDir: string,
+    message: string,
+  ): Promise<CommitSummary> {
+    await this.git.cwd(repoDir);
+    return await this.git.commit(message);
   }
 
   public async clone(
@@ -66,54 +62,85 @@ export class GitService {
     localPath: string,
     options: string[] = null,
   ): Promise<string> {
-    this.repoDir = path.join(this.workDir, localPath);
-    return this.git.clone(repoPath, this.repoDir, options).then(async () => {
-      await this.git.cwd(this.repoDir);
-      return this.repoDir;
+    if (!path.isAbsolute(localPath)) {
+      throw new Error('relative path');
+    }
+    return this.git.clone(repoPath, localPath, options).then(async () => {
+      await this.git.cwd(localPath);
+
+      await this.addDefaultConfig();
+      return localPath;
     });
   }
 
-  public async export(commit: string): Promise<string> {
-    return this.git.raw(['format-patch', '-1', commit]).then(patchName => path.join(this.repoDirectory, patchName.trim()));
+  public async export(repoDir: string, commit: string): Promise<string> {
+    await this.git.cwd(repoDir);
+    return this.git
+      .raw(['format-patch', '-1', commit])
+      .then(patchName => path.join(repoDir, patchName.trim()));
   }
 
-  public async import(patchFile: string): Promise<void> {
-    return this.git.raw(['am', patchFile]).then(output => { return; });
+  public async import(repoDir: string, patchFile: string): Promise<void> {
+    await this.git.cwd(repoDir);
+    return this.git.raw(['am', patchFile]).then(output => {
+      return;
+    });
   }
 
-  public async log(): Promise<ListLogSummary<DefaultLogFields>> {
+  public async log(repoDir: string): Promise<ListLogSummary<DefaultLogFields>> {
+    await this.git.cwd(repoDir);
     return this.git.log({ '-1': null });
   }
 
-  public async checkoutBranch(name: string): Promise<void> {
-    if (await this.isBranch(name)) {
+  public async checkoutBranch(repoDir: string, name: string): Promise<void> {
+    await this.git.cwd(repoDir);
+    if (await this.isBranch(repoDir, name)) {
       return this.git.checkout(name);
     }
 
     return this.git.checkoutLocalBranch(name);
   }
 
-  public async getBranches(): Promise<BranchSummary> {
+  public async getBranches(repoDir: string): Promise<BranchSummary> {
+    await this.git.cwd(repoDir);
     return this.git.branchLocal();
   }
 
-  public async isBranch(name: string): Promise<boolean> {
-    return this.git.branchLocal().then(branchSummary => branchSummary.all.findIndex((value) => value === name) !== -1);
+  public async isBranch(repoDir: string, name: string): Promise<boolean> {
+    await this.git.cwd(repoDir);
+    return this.git
+      .branchLocal()
+      .then(
+        branchSummary =>
+          branchSummary.all.findIndex(value => value === name) !== -1,
+      );
   }
 
-  public async currentBranch(): Promise<string> {
+  public async currentBranch(repoDir: string): Promise<string> {
+    await this.git.cwd(repoDir);
     return this.git.branchLocal().then(branchSummary => branchSummary.current);
   }
 
-  public async push(remote: string, branch: string): Promise<void> {
+  public async push(
+    repoDir: string,
+    remote: string,
+    branch: string,
+  ): Promise<void> {
+    await this.git.cwd(repoDir);
     return this.git.push(remote, branch);
   }
 
-  public async fetch(remote: string): Promise<FetchResult> {
+  public async fetch(repoDir: string, remote: string): Promise<FetchResult> {
+    await this.git.cwd(repoDir);
     return this.git.fetch(remote);
   }
 
-  public async pull(remote: string, branch: string): Promise<PullResult> {
+  public async pull(
+    repoDir: string,
+    remote: string,
+    branch: string,
+  ): Promise<PullResult> {
+    await this.git.cwd(repoDir);
     return this.git.pull(remote, branch);
   }
 }
