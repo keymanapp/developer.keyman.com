@@ -260,4 +260,45 @@ describe('GitService', () => {
     const expected = new RegExp(`^${commit.commit}.+`);
     expect(log.latest.hash).toMatch(expected);
   });
+
+  it('isGitRepo returns false for normal directory', async () => {
+    expect.assertions(1);
+
+    // Setup
+    const repoPath = path.join(tmpDir, 'normalDir');
+    fs.mkdirSync(repoPath);
+
+    // Execute
+    const isRepo = await sut.isGitRepo(repoPath);
+
+    // Verify
+    expect(isRepo).toEqual(false);
+  });
+
+  it('isGitRepo returns false for non-existing directory', async () => {
+    expect.assertions(1);
+
+    // Setup
+    const repoPath = path.join(tmpDir, 'non-existing');
+
+    // Execute
+    const isRepo = await sut.isGitRepo(repoPath);
+
+    // Verify
+    expect(isRepo).toEqual(false);
+  });
+
+  it('isGitRepo returns true for git directory', async () => {
+    expect.assertions(1);
+
+    // Setup
+    const repoPath = path.join(tmpDir, 'normalDir');
+    await sut.createRepo(repoPath);
+
+    // Execute
+    const isRepo = await sut.isGitRepo(repoPath);
+
+    // Verify
+    expect(isRepo).toEqual(true);
+  });
 });
