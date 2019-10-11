@@ -3,7 +3,7 @@ import * as simplegit from 'simple-git/promise';
 
 import fs = require('fs');
 import path = require('path');
-import { CommitSummary, FetchResult, PullResult } from 'simple-git/promise';
+import { CommitSummary, FetchResult, PullResult, Options } from 'simple-git/promise';
 import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typings/response';
 
 @Injectable()
@@ -36,12 +36,14 @@ export class GitService {
     repoPath: string,
     bare: boolean = false,
   ): Promise<string> {
-    fs.mkdirSync(repoPath);
-    await this.git.cwd(repoPath).then(async () => {
-      await this.git.init(bare);
-      await this.addDefaultConfig();
+    return new Promise((resolve) => {
+      fs.mkdir(repoPath, async () => {
+        await this.git.cwd(repoPath);
+        await this.git.init(bare);
+        await this.addDefaultConfig();
+        resolve(repoPath);
+      });
     });
-    return repoPath;
   }
 
   public async addFile(repoDir: string, filename: string): Promise<void> {
@@ -52,9 +54,10 @@ export class GitService {
   public async commit(
     repoDir: string,
     message: string,
+    options?: Options,
   ): Promise<CommitSummary> {
     await this.git.cwd(repoDir);
-    return await this.git.commit(message);
+    return await this.git.commit(message, null, options);
   }
 
   public async clone(
@@ -142,5 +145,18 @@ export class GitService {
   ): Promise<PullResult> {
     await this.git.cwd(repoDir);
     return this.git.pull(remote, branch);
+  }
+
+  public async isGitRepo(repoDir: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      fs.access(repoDir, fs.constants.R_OK, async (err) => {
+        if (err) {
+          resolve(false);
+        } else {
+          await this.git.cwd(repoDir);
+          resolve(await this.git.checkIsRepo());
+        }
+      });
+    });
   }
 }
