@@ -8,3 +8,4 @@ services:
     env_file:
       - ./${NODE_ENV}.env
     command: node dist/main.js
+    image: keymanapp/developer.keyman.com
