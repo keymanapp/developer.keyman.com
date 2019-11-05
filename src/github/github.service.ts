@@ -135,4 +135,17 @@ export class GithubService {
     return url;
   }
 
+  public forkRepo(
+    token: string,
+    owner: string,
+    repo: string,
+  ): Observable<GitHubProject> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
+
+    return this.httpService.post(`https://api.github.com/repos/${owner}/${repo}/forks`, {
+      headers: { Authorization: token },
+    }).pipe(map(result => result.data));
+  }
 }

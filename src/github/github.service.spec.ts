@@ -28,6 +28,7 @@ describe('GitHub Service', () => {
   let spyHttpService: HttpService;
 
   beforeEach(async () => {
+    jest.setTimeout(10000 /*10s*/);
     const testingModule: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule],
       providers: [
@@ -42,6 +43,7 @@ describe('GitHub Service', () => {
           provide: HttpService,
           useFactory: () => ({
             get: jest.fn(() => true),
+            post: jest.fn(() => true),
           }),
         },
       ],
@@ -154,6 +156,7 @@ describe('GitHub Service', () => {
     });
 
     it('should return GitHub projects - two pages', done => {
+      expect.assertions(5);
       const result1: AxiosResponse = {
         data: [projectFromGitHub],
         status: 200,
@@ -181,7 +184,7 @@ describe('GitHub Service', () => {
         .mockImplementationOnce(() => of(result2));
 
       let count = 0;
-      sut.getRepos('token 12345', 1, 100).subscribe({
+      const subscription = sut.getRepos('token 12345', 1, 100).subscribe({
         next: val => {
           expect(val).toEqual(projectFromGitHub);
           count++;
@@ -199,6 +202,34 @@ describe('GitHub Service', () => {
           done();
         },
       });
+      subscription.unsubscribe();
     });
   });
+
+  describe('fork repo', () => {
+    it('creates a fork', async () => {
+      // Setup
+      expect.assertions(2);
+
+      const result: AxiosResponse = {
+        data: projectFromGitHub,
+        status: 200,
+        statusText: '',
+        headers: {},
+        config: {},
+      };
+      jest.spyOn(spyHttpService, 'post').mockImplementationOnce(() => of(result));
+
+      // Execute
+      const gitHubProject = await sut.forkRepo('12345', 'upstreamUser', 'myRepo').toPromise();
+
+      // Verify
+      expect(gitHubProject).toEqual(projectFromGitHub);
+      expect(spyHttpService.post).toHaveBeenCalledWith(
+        'https://api.github.com/repos/upstreamUser/myRepo/forks',
+        { headers: { Authorization: '12345' } },
+      );
+    });
+  });
+
 });
