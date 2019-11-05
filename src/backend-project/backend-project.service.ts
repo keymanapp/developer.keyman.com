@@ -27,4 +27,16 @@ export class BackendProjectService {
       });
     }
   }
+
+  public get branchName() {
+    return 'master';
+  }
+
+  public get keyboardsRepoName() {
+    return 'keyboards';
+  }
+
+  public get localKeyboardsRepo() {
+    return path.join(this.config.workDirectory, this.keyboardsRepoName);
+  }
 }

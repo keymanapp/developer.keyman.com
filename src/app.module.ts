@@ -11,6 +11,8 @@ import { ConfigService } from './config/config.service';
 import { ProjectsModule } from './projects/projects.module';
 import { GithubModule } from './github/github.module';
 import { GitService } from './git/git.service';
+import { BackendProjectModule } from './backend-project/backend-project.module';
+import { GitModule } from './git/git.module';
 
 import memoryStoreModule = require('memorystore');
 const MemoryStore = memoryStoreModule(expressSession);
@@ -24,6 +26,8 @@ const MemoryStore = memoryStoreModule(expressSession);
     ConfigModule,
     ProjectsModule,
     GithubModule,
+    BackendProjectModule,
+    GitModule,
   ],
   controllers: [],
   providers: [GitService],

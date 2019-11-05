@@ -102,4 +102,16 @@ describe('BackendProjectService', () => {
     expect(log.latest.hash).toMatch(expected);
   });
 
+  it('Returns expected branch name', () => {
+    expect(sut.branchName).toEqual('master');
+  });
+
+  it('Returns expected name of keyboards repo', () => {
+    expect(sut.keyboardsRepoName).toEqual('keyboards');
+  });
+
+  it('Returns expected path of the keyboards repo', () => {
+    expect(sut.localKeyboardsRepo).toEqual(`${workDir}/keyboards`);
+  });
+
 });
