@@ -1,6 +1,9 @@
 const { series, parallel } = require('gulp');
 const exec = require('child_process').exec;
+const execSync = require('child_process').execSync;
+const glob = require('glob');
 const run = require('gulp-run-command').default;
+const path = require('path');
 
 function runCommand(cb, cmd) {
   exec(cmd, function (err, stdout, stderr) {
@@ -69,7 +72,30 @@ function updateFrontendWebdriver(cb) {
   // fits the installed chrome version. Not setting the variable will use the latest
   // chromedriver. Note: you'll have to specify the full version number, e.g. 77.0.3865.40
   // which can be found on https://chromedriver.storage.googleapis.com/.
-  const driverVersion = process.env.CHROMEDRIVER_VERSION !== '' ? process.env.CHROMEDRIVER_VERSION : 'latest';
+  var installedVersion;
+  if (process.env.OS === 'Windows_NT') {
+    console.log('Building on Windows');
+    glob.sync('C:\\Program Files (x86)\\Google\\Chrome\\Application\\[0-9]*').forEach(function (file) {
+      installedVersion = path.basename(file);
+    });
+  } else if (process.env.DESKTOP_SESSION === 'ubuntu') {
+    console.log('Building on Ubuntu');
+    installedVersion = execSync('grep "readonly UPSTREAM_VERSION" /usr/bin/chromium-browser | cut -d "=" -f 2');
+  } else {
+    console.log('Building on Mac');
+    glob.sync('/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/[0-9]*').sort().forEach(function (file) {
+      installedVersion = path.basename(file);
+    });
+  }
+
+  if (installedVersion == null) {
+    installedVersion = 'latest';
+  }
+  console.log('Detected installed Chrome version as ' + installedVersion);
+
+  const driverVersion = process.env.CHROMEDRIVER_VERSION ? process.env.CHROMEDRIVER_VERSION : installedVersion;
+
+  console.log('Updating Chromedriver to ' + driverVersion);
 
   runCommand2(cb, `node_modules/.bin/webdriver-manager update --versions.chrome ${driverVersion}`,
     'frontend/node_modules/protractor');
