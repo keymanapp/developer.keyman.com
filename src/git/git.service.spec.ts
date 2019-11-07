@@ -20,6 +20,7 @@ describe('GitService', () => {
     const prefix = path.join(os.tmpdir(), 'gitrepotest-');
     tmpDir = fs.mkdtempSync(prefix);
     sut = module.get<GitService>(GitService);
+    jest.setTimeout(10000/*10s*/);
   });
 
   afterEach(() => {
