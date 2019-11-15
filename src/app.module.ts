@@ -72,12 +72,14 @@ export class AppModule implements NestModule {
 
     if (process.env.NODE_ENV !== 'test') {
       // It seems that MemoryStore has a bug (https://github.com/roccomuso/memorystore/issues/11)
-      // so that it doesn't properly shut down when unit tests end
+      // so that it doesn't properly shut down when unit tests end. On the other hand it is safe
+      // to be used in production.
       sessionOpts.store = new MemoryStore({
         checkPeriod: 24 * 60 * 60 * 1000, // 24 hrs * 60 min * 60 sec * 1000 ms
       });
     } else {
       cookie.secure = false;
+      sessionOpts.store = new expressSession.MemoryStore();
     }
 
     ExpressSessionMiddleware.configure(sessionOpts);

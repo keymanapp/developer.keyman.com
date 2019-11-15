@@ -36,7 +36,7 @@ export class GitService {
     repoPath: string,
     bare: boolean = false,
   ): Promise<string> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       fs.mkdir(repoPath, async () => {
         await this.git.cwd(repoPath);
         await this.git.init(bare);
@@ -61,19 +61,27 @@ export class GitService {
   }
 
   public async clone(
-    repoPath: string,
+    remoteUrl: string,
     localPath: string,
-    options: string[] = null,
+    bare: boolean = false,
+    remoteName?: string,
   ): Promise<string> {
     if (!path.isAbsolute(localPath)) {
       throw new Error('relative path');
     }
-    return this.git.clone(repoPath, localPath, options).then(async () => {
-      await this.git.cwd(localPath);
 
-      await this.addDefaultConfig();
-      return localPath;
-    });
+    const options = [];
+    if (bare) {
+      options.push('--bare');
+    }
+    if (remoteName) {
+      options.push(`--origin=${remoteName}`);
+    }
+
+    await this.git.clone(remoteUrl, localPath, options);
+    await this.git.cwd(localPath);
+    await this.addDefaultConfig();
+    return localPath;
   }
 
   public async export(repoDir: string, commit: string): Promise<string> {
@@ -95,10 +103,18 @@ export class GitService {
     return this.git.log({ '-1': null });
   }
 
-  public async checkoutBranch(repoDir: string, name: string): Promise<void> {
+  public async checkoutBranch(
+    repoDir: string,
+    name: string,
+    trackingBranch: string = null,
+  ): Promise<void> {
     await this.git.cwd(repoDir);
     if (await this.isBranch(repoDir, name)) {
       return this.git.checkout(name);
+    }
+
+    if (trackingBranch) {
+      return this.git.checkoutBranch(name, trackingBranch);
     }
 
     return this.git.checkoutLocalBranch(name);
@@ -133,23 +149,26 @@ export class GitService {
     return this.git.push(remote, branch);
   }
 
-  public async fetch(repoDir: string, remote: string): Promise<FetchResult> {
+  public async fetch(repoDir: string, remote: string, remoteBranch: string): Promise<FetchResult> {
     await this.git.cwd(repoDir);
-    return this.git.fetch(remote);
+    return this.git.fetch(remote, remoteBranch);
   }
 
   public async pull(
     repoDir: string,
-    remote: string,
-    branch: string,
+    remote?: string,
+    branch?: string,
   ): Promise<PullResult> {
     await this.git.cwd(repoDir);
-    return this.git.pull(remote, branch);
+    if (remote) {
+      return this.git.pull(remote, branch);
+    }
+    return this.git.pull();
   }
 
   public async isGitRepo(repoDir: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      fs.access(repoDir, fs.constants.R_OK, async (err) => {
+    return new Promise(resolve => {
+      fs.access(repoDir, fs.constants.R_OK, async err => {
         if (err) {
           resolve(false);
         } else {
@@ -158,5 +177,21 @@ export class GitService {
         }
       });
     });
+  }
+
+  public async hasRemote(repoDir: string, remoteName: string): Promise<boolean> {
+    await this.git.cwd(repoDir);
+    const remotes = await this.git.getRemotes(false);
+    for (const remote of remotes) {
+      if (remote.name === remoteName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public async addRemote(repoDir: string, remoteName: string, remoteRepo: string): Promise<void> {
+    await this.git.cwd(repoDir);
+    return this.git.addRemote(remoteName, remoteRepo);
   }
 }

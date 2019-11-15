@@ -16,16 +16,37 @@ export class BackendProjectService {
   public async cloneOrUpdateProject(
     remoteRepo: string,
     localRepo: string,
-    branch: string,
+    localBranch: string,
+    remoteName: string,
+    remoteBranch: string = localBranch,
   ): Promise<string> {
     if (fs.existsSync(localRepo)) {
-      return this.gitService.pull(localRepo, remoteRepo, branch).then(() => localRepo);
+      if (!await this.gitService.hasRemote(localRepo, remoteName)) {
+        await this.gitService.addRemote(localRepo, remoteName, remoteRepo);
+        await this.gitService.fetch(localRepo, remoteName, remoteBranch);
+      }
+      const branchExists = await this.gitService.isBranch(localRepo, localBranch);
+      if (!branchExists) {
+        await this.checkoutBranch(localRepo, localBranch, `${remoteName}/${remoteBranch}`);
+        // this.gitService.push(localRepo, )
+      }
+      return this.gitService.pull(localRepo, remoteName, remoteBranch).then(() => localRepo);
     } else {
-      return this.gitService.clone(remoteRepo, localRepo).then(async () => {
-        await this.gitService.checkoutBranch(localRepo, branch);
-        return localRepo;
+      return this.gitService.clone(remoteRepo, localRepo, false, remoteName).then(async () => {
+        return this.checkoutBranch(localRepo, localBranch, `${remoteName}/${remoteBranch}`);
       });
     }
+  }
+
+  private async checkoutBranch(
+    localRepo: string,
+    localBranch: string,
+    remoteBranch?: string,
+  ): Promise<string> {
+    if (remoteBranch) {
+      return this.gitService.checkoutBranch(localRepo, localBranch, remoteBranch).then(() => localRepo);
+    }
+    return this.gitService.checkoutBranch(localRepo, localBranch).then(() => localRepo);
   }
 
   public get branchName() {

@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectsController } from './projects.controller';
 import { HttpModule } from '@nestjs/common/http';
-import { of, empty, combineLatest } from 'rxjs';
+import { of, empty, from } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import fs = require('fs');
 import os = require('os');
@@ -32,6 +33,8 @@ describe('Projects Controller', () => {
           provide: GithubService,
           useFactory: () => ({
             getRepos: jest.fn(() => true),
+            forkRepo: jest.fn(() => of({ name: 'foo' })),
+            organizationName: jest.fn(() => 'keymanapp'),
           }),
         },
         GitService,
@@ -115,7 +118,7 @@ describe('Projects Controller', () => {
       await gitService.clone(
         repoDir,
         path.join(gitHubDir, 'foo', 'remoteTestRepo.git'),
-        ['--bare'],
+        true,
       );
     });
 
@@ -142,7 +145,7 @@ describe('Projects Controller', () => {
       await gitService.clone(
         keyboardsDummyRepo,
         path.join(gitHubDir, user, 'keyboards.git'),
-        ['--bare'],
+        true,
       );
     }
 
@@ -152,7 +155,7 @@ describe('Projects Controller', () => {
       await gitService.clone(
         keyboardsDummyRepo,
         path.join(gitHubDir, 'keymanapp', 'keyboards.git'),
-        ['--bare'],
+        true,
       );
     }
 
@@ -169,21 +172,33 @@ describe('Projects Controller', () => {
       // Verify
       // Should clone single-keyboards repo
       const expectedRepo = path.join(workDir, 'foo-remoteTestRepo');
-      expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBeTruthy();
+      expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
       expect(project).toEqual({ repoUrl: expectedRepo, name: 'remoteTestRepo' });
 
       // Should clone keyboards repo
       const expectedKeyboardsRepo = path.join(workDir, 'keyboards');
-      expect(fs.existsSync(path.join(expectedKeyboardsRepo, '.git'))).toBeTruthy();
+      expect(fs.existsSync(path.join(expectedKeyboardsRepo, '.git'))).toBe(true);
       expect(await gitService.currentBranch(expectedKeyboardsRepo)).toEqual('foo-remoteTestRepo');
     });
 
-    // not working yet
-    xit('clones single-keyboard repo and forks keyboards repo', async () => {
-      expect.assertions(4);
+    it('clones single-keyboard repo and forks keyboards repo', async () => {
+      expect.assertions(5);
 
       // Setup
       const session = { login: 'foo' };
+      await createGlobalKeyboardsRepo();
+
+      jest
+        .spyOn(githubService, 'forkRepo')
+        .mockImplementation(() => {
+          return from(gitService.clone(
+              path.join(gitHubDir, 'dummy', 'keyboards'),
+              path.join(gitHubDir, 'foo', 'keyboards.git'),
+              true,
+          )).pipe(
+            map(() => ({ name: 'foo' })),
+          );
+        });
 
       // Execute
       const project = await sut
@@ -193,21 +208,19 @@ describe('Projects Controller', () => {
       // Verify
       // Should clone single-keyboards repo
       const expectedRepo = path.join(workDir, 'foo-remoteTestRepo');
-      expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBeTruthy();
+      expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
       expect(project).toEqual({
         repoUrl: expectedRepo,
         name: 'remoteTestRepo',
       });
+
       // should create fork of keyboards repo
+      expect(fs.existsSync(path.join(gitHubDir, 'foo', 'keyboards.git'))).toBe(true);
 
       // Should clone keyboards repo
       const expectedKeyboardsRepo = path.join(workDir, 'keyboards');
-      expect(
-        fs.existsSync(path.join(expectedKeyboardsRepo, '.git')),
-      ).toBeTruthy();
-      expect(await gitService.currentBranch(expectedKeyboardsRepo)).toEqual(
-        'foo-remoteTestRepo',
-      );
+      expect(fs.existsSync(path.join(expectedKeyboardsRepo, '.git'))).toBe(true);
+      expect(await gitService.currentBranch(expectedKeyboardsRepo)).toEqual('foo-remoteTestRepo');
     });
   });
 });

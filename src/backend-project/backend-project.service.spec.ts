@@ -49,7 +49,7 @@ describe('BackendProjectService', () => {
     ]);
     await gitService.commit(repoDir, 'Initial commit');
 
-    remoteRepo = await gitService.clone(repoDir, path.join(tmpDir, 'remoteTestRepo'), ['--bare']);
+    remoteRepo = await gitService.clone(repoDir, path.join(tmpDir, 'remoteTestRepo'), true);
   });
 
   afterEach(() => {
@@ -67,51 +67,113 @@ describe('BackendProjectService', () => {
     );
   });
 
-  it('does clone remote project if it does not exist locally', async () => {
-    expect.assertions(2);
+  describe('cloneOrUpdateProject', () => {
+    it('does clone remote project if it does not exist locally', async () => {
+      // Setup
+      expect.assertions(3);
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
 
-    // Setup
-    const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      // Execute
+      const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'master', 'jdoe');
 
-    // Execute
-    const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'master');
+      // Verify
+      expect(cloneDir).toEqual(expectedCloneDir);
+      expect(fs.existsSync(path.join(cloneDir, '.git'))).toBe(true);
+      expect(await gitService.currentBranch(cloneDir)).toEqual('master');
+    });
 
-    // Verify
-    expect(cloneDir).toEqual(expectedCloneDir);
-    expect(fs.existsSync(path.join(expectedCloneDir, '.git'))).toBeTruthy();
+    it('updates local project if it does exist locally', async () => {
+      // Setup
+      expect.assertions(4);
+      const setupRepo = await gitService.clone(remoteRepo, path.join(config.workDirectory, 'setuprepo'));
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      await gitService.clone(remoteRepo, expectedCloneDir);
+      const secondCommit = await gitService.commit(setupRepo, 'empty commit', { '--allow-empty': null });
+      await gitService.push(setupRepo, 'origin', 'master');
+
+      // Execute
+      const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'master', 'jdoe');
+
+      // Verify
+      expect(cloneDir).toEqual(expectedCloneDir);
+      expect(fs.existsSync(path.join(cloneDir, '.git'))).toBe(true);
+      expect(await gitService.currentBranch(cloneDir)).toEqual('master');
+      const log = await gitService.log(cloneDir);
+      const expected = new RegExp(`^${secondCommit.commit}.+`);
+      expect(log.latest.hash).toMatch(expected);
+    });
+
+    it('works with different local branch name if it does not exist locally', async () => {
+      // Setup
+      expect.assertions(3);
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+
+      // Execute
+      const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'local-branch', 'jdoe', 'master');
+
+      // Verify
+      expect(cloneDir).toEqual(expectedCloneDir);
+      expect(fs.existsSync(path.join(cloneDir, '.git'))).toBe(true);
+      expect(await gitService.currentBranch(cloneDir)).toEqual('local-branch');
+    });
+
+    it('works with different local branch name if it does exist locally', async () => {
+      // Setup
+      expect.assertions(4);
+      const setupRepo = await gitService.clone(remoteRepo, path.join(config.workDirectory, 'setuprepo'));
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      await gitService.clone(remoteRepo, expectedCloneDir);
+      const secondCommit = await gitService.commit(setupRepo, 'empty commit', { '--allow-empty': null });
+      await gitService.push(setupRepo, 'origin', 'master');
+
+      // Execute
+      const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'local-branch', 'jdoe', 'master');
+
+      // Verify
+      expect(cloneDir).toEqual(expectedCloneDir);
+      expect(fs.existsSync(path.join(cloneDir, '.git'))).toBe(true);
+      expect(await gitService.currentBranch(cloneDir)).toEqual('local-branch');
+      const log = await gitService.log(cloneDir);
+      const expected = new RegExp(`^${secondCommit.commit}.+`);
+      expect(log.latest.hash).toMatch(expected);
+    });
   });
 
-  it('updates project if it does exist locally', async () => {
-    expect.assertions(3);
+  describe('clone', () => {
+    it('updates project if it does exist locally', async () => {
+      expect.assertions(3);
 
-    // Setup
-    const setupRepo = await gitService.clone(remoteRepo, path.join(config.workDirectory, 'setuprepo'));
-    const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
-    await gitService.clone(remoteRepo, expectedCloneDir);
-    const secondCommit = await gitService.commit(setupRepo, 'empty commit', { '--allow-empty': null });
-    await gitService.push(setupRepo, 'origin', 'master');
+      // Setup
+      const setupRepo = await gitService.clone(remoteRepo, path.join(config.workDirectory, 'setuprepo'));
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      await gitService.clone(remoteRepo, expectedCloneDir);
+      const secondCommit = await gitService.commit(setupRepo, 'empty commit', { '--allow-empty': null });
+      await gitService.push(setupRepo, 'origin', 'master');
 
-    // Execute
-    const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'master');
+      // Execute
+      const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'master', 'jdoe');
 
-    // Verify
-    expect(cloneDir).toEqual(expectedCloneDir);
-    expect(fs.existsSync(path.join(expectedCloneDir, '.git'))).toBeTruthy();
-    const log = await gitService.log(cloneDir);
-    const expected = new RegExp(`^${secondCommit.commit}.+`);
-    expect(log.latest.hash).toMatch(expected);
+      // Verify
+      expect(cloneDir).toEqual(expectedCloneDir);
+      expect(fs.existsSync(path.join(expectedCloneDir, '.git'))).toBe(true);
+      const log = await gitService.log(cloneDir);
+      const expected = new RegExp(`^${secondCommit.commit}.+`);
+      expect(log.latest.hash).toMatch(expected);
+    });
   });
 
-  it('Returns expected branch name', () => {
-    expect(sut.branchName).toEqual('master');
-  });
+  describe('Helper methods', () => {
+    it('Returns expected branch name', () => {
+      expect(sut.branchName).toEqual('master');
+    });
 
-  it('Returns expected name of keyboards repo', () => {
-    expect(sut.keyboardsRepoName).toEqual('keyboards');
-  });
+    it('Returns expected name of keyboards repo', () => {
+      expect(sut.keyboardsRepoName).toEqual('keyboards');
+    });
 
-  it('Returns expected path of the keyboards repo', () => {
-    expect(sut.localKeyboardsRepo).toEqual(path.join(workDir, 'keyboards'));
+    it('Returns expected path of the keyboards repo', () => {
+      expect(sut.localKeyboardsRepo).toEqual(path.join(workDir, 'keyboards'));
+    });
   });
 
 });

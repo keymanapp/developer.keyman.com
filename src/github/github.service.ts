@@ -1,17 +1,17 @@
 import { HttpService, Injectable } from '@nestjs/common';
 import { AxiosResponse, AxiosRequestConfig } from 'axios';
-import { Observable, of, empty } from 'rxjs';
-import { map, expand, concatMap } from 'rxjs/operators';
+import { Observable, of, empty, interval } from 'rxjs';
+import { map, expand, concatMap, catchError, mapTo, switchMap, takeWhile, takeLast } from 'rxjs/operators';
 
 import { TokenService } from '../token/token.service';
 import { ConfigService } from '../config/config.service';
 
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
 import { GitHubUser } from '../interfaces/git-hub-user.interface';
+import { GitHubProject } from '../interfaces/git-hub-project.interface';
 
 const redirectUri = '/index.html';
 const scope = 'repo read:user user:email';
-interface GitHubProject { name: string; full_name?: string; owner?: { login: string; }; }
 
 @Injectable()
 export class GithubService {
@@ -30,9 +30,7 @@ export class GithubService {
     const state = this.tokenService.createRandomString(10);
     const url = {
       url:
-        `https://github.com/login/oauth/authorize?client_id=${
-          this.config.clientId
-        }&` +
+        `https://github.com/login/oauth/authorize?client_id=${this.config.clientId}&` +
         `redirect_uri=${this.getRedirectUri()}&scope=${scope}&state=${state}`,
     };
     return of(url);
@@ -73,9 +71,7 @@ export class GithubService {
     };
     return this.httpService.get(
       'https://github.com/login/oauth/access_token' +
-        `?client_id=${this.config.clientId}&client_secret=${
-          this.config.clientSecret
-        }` +
+        `?client_id=${this.config.clientId}&client_secret=${this.config.clientSecret}` +
         `&code=${code}&state=${state}`,
       opt,
     );
@@ -107,12 +103,17 @@ export class GithubService {
 
     const url = `https://api.github.com/user/repos?type=public&sort=full_name&page=${page}&per_page=${pageSize}`;
     return this.getReposPage(url, token).pipe(
-      expand(({ nextPageUrl }) => nextPageUrl ? this.getReposPage(nextPageUrl, token) : empty()),
+      expand(({ nextPageUrl }) =>
+        nextPageUrl ? this.getReposPage(nextPageUrl, token) : empty(),
+      ),
       concatMap(({ content }) => content),
     );
   }
 
-  private getReposPage(url: string, token: string): Observable<{ content: GitHubProject[], nextPageUrl: string | null }> {
+  private getReposPage(
+    url: string,
+    token: string,
+  ): Observable<{ content: GitHubProject[]; nextPageUrl: string | null }> {
     return this.httpService
       .get(url, { headers: { Authorization: token } })
       .pipe(
@@ -135,17 +136,72 @@ export class GithubService {
     return url;
   }
 
-  public forkRepo(
-    token: string,
+  public waitForRepoToExist(
     owner: string,
     repo: string,
+    timeoutSeconds: number = 300,
+  ): Observable<void> {
+    return interval(1000).pipe(
+      switchMap((x: number) => {
+        if (x >= timeoutSeconds) {
+          throw new Error(`timeout after ${timeoutSeconds} seconds without seeing repo`);
+        }
+
+        return this.repoExists(owner, repo);
+      }),
+      takeWhile(exists => !exists),
+      takeLast(1),
+      map(() => { /* empty */ }),
+    );
+  }
+
+  public repoExists(owner: string, repo: string): Observable<boolean> {
+    return this.httpService.get(`https://github.com/${owner}/${repo}`).pipe(
+      mapTo(true),
+      catchError(() => of(false)),
+    );
+  }
+
+  public forkRepo(
+    token: string,
+    upstreamOwner: string,
+    repo: string,
+    user: string,
   ): Observable<GitHubProject> {
     if (token == null || token.length === 0) {
       return null;
     }
 
-    return this.httpService.post(`https://api.github.com/repos/${owner}/${repo}/forks`, {
-      headers: { Authorization: token },
-    }).pipe(map(result => result.data));
+    return this.repoExists(user, repo).pipe(
+      switchMap(exists => {
+        if (exists) {
+          return of({ name: repo, full_name: `${user}/${repo}` });
+        }
+
+        let project: GitHubProject = null;
+
+        return this.httpService
+          .post(
+            `https://api.github.com/repos/${upstreamOwner}/${repo}/forks`,
+            null,
+            {
+              headers: { authorization: token },
+            },
+          )
+          .pipe(
+            switchMap(result => {
+              project = result.data;
+              return this.waitForRepoToExist(user, repo).pipe(
+                map(() => project),
+              );
+            }),
+            catchError(() => of({ name: null })),
+          );
+      }),
+    );
+  }
+
+  public get organizationName() {
+    return 'keymanapp';
   }
 }
