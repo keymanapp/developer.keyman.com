@@ -143,6 +143,14 @@
 		"problemMatcher": [
 			"$tslint5"
 		]
+	},
+	{
+		"type": "npm",
+		"script": "test:e2e:watch",
+		"problemMatcher": [
+			"$awesomets-lint"
+		],
+		"group": "build"
 	}
 ]
 }

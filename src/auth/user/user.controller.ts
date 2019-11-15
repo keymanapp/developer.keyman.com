@@ -8,6 +8,7 @@ import {
   ValidationPipe,
   Delete,
   Headers,
+  Param,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 
@@ -36,7 +37,7 @@ export class UserController {
   ): Promise<AccessTokenDto> {
     return callWithErrorHandling(
       () => this.githubService.getAccessToken(loginDto.code, loginDto.state),
-      (response) => {
+      response => {
         const ghToken = response.data as GitHubAccessToken;
         return new AccessTokenDto(ghToken.access_token);
       },
@@ -56,7 +57,7 @@ export class UserController {
   ): Promise<GitHubUserDto> {
     return callWithErrorHandling(
       () => this.githubService.getUserInformation(token),
-      (response) => {
+      response => {
         const user = response.data as GitHubUser;
         session.login = user.login;
         return new GitHubUserDto(user);
@@ -65,4 +66,13 @@ export class UserController {
     );
   }
 
+  // Method used in tests to set the username in the session
+  @Get('user/test/:username')
+  public async getUser(
+    @Session() session: any,
+    @Headers('authorization') token: string,
+    @Param() params: any,
+  ): Promise<void> {
+    session.login = params.username;
+  }
 }

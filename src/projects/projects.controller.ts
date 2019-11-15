@@ -1,6 +1,6 @@
 import { Controller, Get, Headers, Session, Post, Param } from '@nestjs/common';
 import { Observable, from, combineLatest } from 'rxjs';
-import { map, toArray, filter } from 'rxjs/operators';
+import { map, toArray, filter, switchMap } from 'rxjs/operators';
 import { GithubService } from '../github/github.service';
 import { BackendProjectService } from '../backend-project/backend-project.service';
 
@@ -40,19 +40,45 @@ export class ProjectsController {
     const localRepo = this.backendService.getProjectRepo(session.login, params.repo);
     const remoteRepo = `${this.gitHubUrl}/${session.login}/${params.repo}.git`;
     const createSingleProject = from(
-      this.backendService.cloneOrUpdateProject(remoteRepo, localRepo, this.backendService.branchName),
-    ).pipe(map(project => ({ name: params.repo, repoUrl: project })));
-
-    const remoteKeyboardsRepo = `${this.gitHubUrl}/${session.login}/${this.backendService.keyboardsRepoName}.git`;
-    const localKeyboardsRepo = this.backendService.localKeyboardsRepo;
-    const createKeyboardsProject = from(
       this.backendService.cloneOrUpdateProject(
-        remoteKeyboardsRepo,
-        localKeyboardsRepo,
-        `${session.login}-${params.repo}`,
+        remoteRepo,
+        localRepo,
+        this.backendService.branchName,
+        session.login,
       ),
     ).pipe(map(project => ({ name: params.repo, repoUrl: project })));
 
-    return combineLatest(createSingleProject, createKeyboardsProject, (result1) => result1);
+    const createKeyboardsRepo = from(
+      this.forkCloneAndUpdateProject(token, session.login, this.backendService.keyboardsRepoName, params.repo, 'master'),
+    ).pipe(map(project => ({ name: params.repo, repoUrl: project })));
+
+    return combineLatest(
+      createSingleProject,
+      createKeyboardsRepo,
+      result1 => result1,
+    );
+  }
+
+  private forkCloneAndUpdateProject(
+    token: string,
+    gitHubUser: string,
+    repoName: string,
+    branchName: string,
+    remoteBranch: string,
+  ): Observable<string> {
+    return this.githubService
+      .forkRepo(token, this.githubService.organizationName, repoName, gitHubUser)
+      .pipe(switchMap(() => {
+        const remoteKeyboardsRepo = `${this.gitHubUrl}/${gitHubUser}/${this.backendService.keyboardsRepoName}.git`;
+        const localKeyboardsRepo = this.backendService.localKeyboardsRepo;
+        return from(this.backendService.cloneOrUpdateProject(
+          remoteKeyboardsRepo,
+          localKeyboardsRepo,
+          `${gitHubUser}-${branchName}`,
+          gitHubUser,
+          remoteBranch,
+        ));
+      }),
+      );
   }
 }
