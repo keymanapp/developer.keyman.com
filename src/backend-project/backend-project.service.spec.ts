@@ -111,7 +111,7 @@ describe('BackendProjectService', () => {
   });
 
   it('Returns expected path of the keyboards repo', () => {
-    expect(sut.localKeyboardsRepo).toEqual(`${workDir}/keyboards`);
+    expect(sut.localKeyboardsRepo).toEqual(path.join(workDir, 'keyboards'));
   });
 
 });
