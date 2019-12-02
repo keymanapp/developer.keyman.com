@@ -46,7 +46,10 @@ export class ProjectsController {
         this.backendService.branchName,
         session.login,
       ),
-    ).pipe(map(project => ({ name: params.repo, repoUrl: project })));
+    ).pipe(map(project => ({
+      name: this.backendService.getKeyboardId(params.repo, localRepo),
+      repoUrl: project,
+    })));
 
     const createKeyboardsRepo = from(
       this.forkCloneAndUpdateProject(token, session.login, this.backendService.keyboardsRepoName, params.repo, 'master'),
