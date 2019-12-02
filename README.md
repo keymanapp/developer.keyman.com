@@ -32,6 +32,15 @@ In the `*.env` file replace the values for `CLIENT_ID` and `CLIENT_SECRET` with 
 _Client Secret_ that GitHub displays for the app. You should also replace the value for
 `SESSION_SECRET` with a random value.
 
+If you want to run all e2e tests, you'll have to create a test user on GitHub. Fork
+[kdotester1/khmer_angkor](https://github.com/kdotester1/khmer_angkor) to your test
+account and set two environment variables before running the e2e tests:
+
+```bash
+export TEST_GITHUB_USER=<GitHubTestUser>
+export TEST_GITHUB_TOKEN=<PersonalAccessTokenForGitHubTestUser>
+```
+
 ## Development
 
 ```bash
