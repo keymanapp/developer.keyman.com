@@ -28,7 +28,6 @@ export class BackendProjectService {
       const branchExists = await this.gitService.isBranch(localRepo, localBranch);
       if (!branchExists) {
         await this.checkoutBranch(localRepo, localBranch, `${remoteName}/${remoteBranch}`);
-        // this.gitService.push(localRepo, )
       }
       return this.gitService.pull(localRepo, remoteName, remoteBranch).then(() => localRepo);
     } else {
@@ -59,5 +58,18 @@ export class BackendProjectService {
 
   public get localKeyboardsRepo() {
     return path.join(this.config.workDirectory, this.keyboardsRepoName);
+  }
+
+  public getKeyboardId(repoName: string, localRepo: string): string {
+    const keyboardInfoFile = path.join(localRepo, `${repoName}.keyboard_info`);
+    if (fs.existsSync(keyboardInfoFile)) {
+      const fileContent = fs.readFileSync(keyboardInfoFile);
+      const data = JSON.parse(fileContent.toString());
+      if (!!data.id) {
+        return data.id;
+      }
+    }
+
+    return repoName;
   }
 }

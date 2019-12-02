@@ -176,4 +176,61 @@ describe('BackendProjectService', () => {
     });
   });
 
+  describe('getKeyboardId', () => {
+    let testDir: string;
+
+    beforeEach(() => {
+      const prefix = path.join(os.tmpdir(), 'backendprojecttests-');
+      testDir = fs.mkdtempSync(prefix);
+    });
+
+    afterEach(() => {
+      deleteFolderRecursive(tmpDir);
+    });
+
+    it('extracts id from keyboard_info file if it has an id', () => {
+      // Setup
+      expect.assertions(1);
+      fs.appendFileSync(path.join(testDir, 'enga.keyboard_info'), `{
+        "id": "test",
+        "license": "mit",
+        "languages": [ "enq-Latn" ],
+        "description": "The Enga keyboard supports the Enga language of Papua New Guinea"
+      }`);
+
+      // Execute
+      const id = sut.getKeyboardId('enga', testDir);
+
+      // Verify
+      expect(id).toEqual('test');
+    });
+
+    it('gets id from repo name if keyboard_info file does not have id', () => {
+      // Setup
+      expect.assertions(1);
+      fs.appendFileSync(path.join(testDir, 'enga.keyboard_info'), `{
+        "license": "mit",
+        "languages": [ "enq-Latn" ],
+        "description": "The Enga keyboard supports the Enga language of Papua New Guinea"
+      }`);
+
+      // Execute
+      const id = sut.getKeyboardId('enga', testDir);
+
+      // Verify
+      expect(id).toEqual('enga');
+    });
+
+    it('gets id from repo name if keyboard_info file does not exist', () => {
+      // Setup
+      expect.assertions(1);
+
+      // Execute
+      const id = sut.getKeyboardId('enga', testDir);
+
+      // Verify
+      expect(id).toEqual('enga');
+    });
+  });
+
 });
