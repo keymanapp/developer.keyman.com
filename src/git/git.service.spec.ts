@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { from } from 'rxjs';
 import { CommitSummary } from 'simple-git/promise';
 import * as simplegit from 'simple-git/promise';
 import { deleteFolderRecursive } from '../utils/delete-folder';
@@ -87,12 +88,26 @@ describe('GitService', () => {
       const secondCommit = await addCommit(sut, repoDir, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit');
 
       // Execute
-      const log = await sut.log(repoDir);
+      const log = await sut.log(repoDir, { '-1': null });
 
       // Verify
       const expected = new RegExp(`^${secondCommit.commit}.+`);
       expect(log.latest.hash).toMatch(expected);
       expect(log.total).toEqual(1);
+    });
+
+    it('gets all commits', async () => {
+      // Setup
+      expect.assertions(1);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
+      await createInitialCommit(sut, repoDir);
+      await addCommit(sut, repoDir, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit');
+
+      // Execute
+      const log = await sut.log(repoDir);
+
+      // Verify
+      expect(log.total).toEqual(2);
     });
   });
 
@@ -145,28 +160,120 @@ describe('GitService', () => {
 
   describe('export and import', () => {
     it('can export and import patch', async () => {
-      expect.assertions(2);
+      expect.assertions(4);
 
-      // Setup 1
+      // Setup 1+2
       const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
-      const commit = await createInitialCommit(sut, repoDir);
+      await createInitialCommit(sut, repoDir);
+      const secondRepoDir = await sut.clone(repoDir, path.join(tmpDir, 'secondRepo'));
+      await addCommit(
+        sut,
+        repoDir,
+        path.join(repoDir, 'somefile1.txt'),
+        'Additional text',
+        'second commit',
+      );
+      let log = await sut.log(secondRepoDir);
+      expect(log.total).toEqual(1);
 
       // Execute 1
-      const patch = await sut.export(repoDir, 'HEAD');
+      const patches = await sut.export(repoDir, 'HEAD', '-1');
 
       // Verify 1
-      expect(patch).toEqual(path.join(repoDir, '0001-my-commit-message.patch'));
+      expect(patches.length).toEqual(1);
+      expect(patches[0]).toEqual(path.join(repoDir, '0001-second-commit.patch'));
+
+      // Execute 2
+      await sut.import(secondRepoDir, patches);
+
+      // Verify 2
+      log = await sut.log(secondRepoDir);
+      expect(log.total).toEqual(2);
+    });
+
+    it('can export and import multiple patches', async () => {
+      // Setup 1
+      expect.assertions(4);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
+      await createInitialCommit(sut, repoDir);
+      await addCommit(sut, repoDir, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit');
+
+      // Execute 1
+      const patches = await sut.export(repoDir, 'HEAD', '--root');
+
+      // Verify 1
+      expect(patches.length).toEqual(2);
+      expect(patches[0]).toEqual(path.join(repoDir, '0001-my-commit-message.patch'));
+      expect(patches[1]).toEqual(path.join(repoDir, '0002-second-commit.patch'));
 
       // Setup 2
       const secondRepoDir = await sut.createRepo(path.join(tmpDir, 'secondRepo'));
 
       // Execute 2
-      await sut.import(secondRepoDir, patch);
+      await sut.import(secondRepoDir, patches);
 
       // Verify 2
       const log = await sut.log(secondRepoDir);
-      expect(log.total).toEqual(1);
+      expect(log.total).toEqual(2);
     });
+
+    it('can export a range of commits', async () => {
+      // Setup
+      expect.assertions(3);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
+      await createInitialCommit(sut, repoDir);
+      await addCommit(
+        sut,
+        repoDir,
+        path.join(repoDir, 'somefile1.txt'),
+        'Additional text',
+        'second commit',
+      );
+      await addCommit(
+        sut,
+        repoDir,
+        path.join(repoDir, 'somefile1.txt'),
+        'Some more text',
+        'third commit',
+      );
+
+      // Execute
+      const patches = await sut.export(repoDir, 'HEAD^^..HEAD');
+
+      // Verify
+      expect(patches.length).toEqual(2);
+      expect(patches[0]).toEqual(
+        path.join(repoDir, '0001-second-commit.patch'),
+      );
+      expect(patches[1]).toEqual(
+        path.join(repoDir, '0002-third-commit.patch'),
+      );
+    });
+
+    it('can import patches', async () => {
+      expect.assertions(1);
+
+      // Setup
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest'));
+      await createInitialCommit(sut, repoDir);
+      await addCommit(
+        sut,
+        repoDir,
+        path.join(repoDir, 'somefile1.txt'),
+        'Additional text',
+        'second commit',
+      );
+      const patches = await sut.export(repoDir, 'HEAD', '--root');
+      const secondRepoDir = await sut.createRepo(path.join(tmpDir, 'secondRepo'));
+
+      // Execute
+      await sut.importFiles(secondRepoDir, from(patches)).toPromise();
+
+      // Verify
+      const log = await sut.log(secondRepoDir);
+      expect(log.total).toEqual(2);
+    });
+
   });
 
   describe('checkoutBranch', () => {
