@@ -13,6 +13,7 @@ import { GithubModule } from './github/github.module';
 import { GitService } from './git/git.service';
 import { BackendProjectModule } from './backend-project/backend-project.module';
 import { GitModule } from './git/git.module';
+import { PullRequestModule } from './pull-request/pull-request.module';
 
 import memoryStoreModule = require('memorystore');
 const MemoryStore = memoryStoreModule(expressSession);
@@ -28,6 +29,7 @@ const MemoryStore = memoryStoreModule(expressSession);
     GithubModule,
     BackendProjectModule,
     GitModule,
+    PullRequestModule,
   ],
   controllers: [],
   providers: [GitService],
