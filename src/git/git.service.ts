@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { Observable, from } from 'rxjs';
+import { map, flatMap } from 'rxjs/operators';
 import * as simplegit from 'simple-git/promise';
+import { CommitSummary, FetchResult, PullResult, Options } from 'simple-git/promise';
+import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typings/response';
 
 import fs = require('fs');
 import path = require('path');
-import { CommitSummary, FetchResult, PullResult, Options } from 'simple-git/promise';
-import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typings/response';
 
 @Injectable()
 export class GitService {
@@ -18,7 +20,7 @@ export class GitService {
   constructor() {
     this.git = simplegit();
     this.git.outputHandler((command, stdout, stderr) => {
-      console.log(command);
+      console.log(`calling: git ${command}`);
       stdout.pipe(process.stdout);
       stderr.pipe(process.stderr);
     });
@@ -84,29 +86,58 @@ export class GitService {
     return localPath;
   }
 
-  public async export(repoDir: string, commit: string): Promise<string> {
+  public async export(
+    repoDir: string,
+    commit: string,
+    rangeOption: string = null,
+  ): Promise<string[]> {
+    const args = [];
+    args.push('format-patch');
+    if (rangeOption) {
+      args.push(rangeOption);
+    }
+    args.push(commit);
     await this.git.cwd(repoDir);
-    return this.git
-      .raw(['format-patch', '-1', commit])
-      .then(patchName => path.join(repoDir, patchName.trim()));
-  }
-
-  public async import(repoDir: string, patchFile: string): Promise<void> {
-    await this.git.cwd(repoDir);
-    return this.git.raw(['am', patchFile]).then(output => {
-      return;
+    return this.git.raw(args).then(patchNames => {
+      const result = [];
+      for (const patch of patchNames.trim().split('\n')) {
+        result.push(path.join(repoDir, patch.trim()));
+      }
+      return result;
     });
   }
 
-  public async log(repoDir: string): Promise<ListLogSummary<DefaultLogFields>> {
+  public async import(repoDir: string, patchFiles: string[]): Promise<void> {
     await this.git.cwd(repoDir);
-    return this.git.log({ '-1': null });
+    for (const patchFile of patchFiles) {
+      await this.git.raw(['am', patchFile]);
+    }
+    return;
+  }
+
+  public importFiles(repoDir: string, patchFiles: Observable<string>): Observable<void> {
+    return from(this.git.cwd(repoDir)).pipe(
+      flatMap(() => patchFiles),
+      flatMap(patchFile => this.git.raw(['am', patchFile])),
+      map(() => { return; }),
+    );
+  }
+
+  public async log(
+    repoDir: string,
+    options?: {},
+  ): Promise<ListLogSummary<DefaultLogFields>> {
+    await this.git.cwd(repoDir);
+    if (options) {
+      return this.git.log(options);
+    }
+    return this.git.log();
   }
 
   public async checkoutBranch(
     repoDir: string,
     name: string,
-    trackingBranch: string = null,
+    trackingBranch?: string,
   ): Promise<void> {
     await this.git.cwd(repoDir);
     if (await this.isBranch(repoDir, name)) {
@@ -149,7 +180,11 @@ export class GitService {
     return this.git.push(remote, branch);
   }
 
-  public async fetch(repoDir: string, remote: string, remoteBranch: string): Promise<FetchResult> {
+  public async fetch(
+    repoDir: string,
+    remote: string,
+    remoteBranch: string,
+  ): Promise<FetchResult> {
     await this.git.cwd(repoDir);
     return this.git.fetch(remote, remoteBranch);
   }
@@ -179,7 +214,10 @@ export class GitService {
     });
   }
 
-  public async hasRemote(repoDir: string, remoteName: string): Promise<boolean> {
+  public async hasRemote(
+    repoDir: string,
+    remoteName: string,
+  ): Promise<boolean> {
     await this.git.cwd(repoDir);
     const remotes = await this.git.getRemotes(false);
     for (const remote of remotes) {
@@ -190,7 +228,11 @@ export class GitService {
     return false;
   }
 
-  public async addRemote(repoDir: string, remoteName: string, remoteRepo: string): Promise<void> {
+  public async addRemote(
+    repoDir: string,
+    remoteName: string,
+    remoteRepo: string,
+  ): Promise<void> {
     await this.git.cwd(repoDir);
     return this.git.addRemote(remoteName, remoteRepo);
   }
