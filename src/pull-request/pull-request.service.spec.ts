@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { of } from 'rxjs';
 
 import fs = require('fs');
 import os = require('os');
@@ -409,11 +410,101 @@ rename to release/m/myKeyboard/this/is/a/long/path/somefile3.txt
     });
   });
 
-  describe('template', () => {
-    it('template', async () => {
+  describe('importPatches', () => {
+    it('imports patches', done => {
       // Setup
+      expect.assertions(4);
+      const patchFile1 = '0001-Initial-commit.patch';
+      const patchFile1FullPath = path.join(keyboardsRepo, patchFile1);
+      fs.appendFileSync(
+        patchFile1FullPath,
+        /* #region patch file 1 */
+        `From 28132549f15a430017bbb6121813387f0f0f84b6 Mon Sep 17 00:00:00 2001
+From: Keyman Developer Online <kdo@example.com>
+Date: Thu, 5 Dec 2019 12:13:34 +0100
+Subject: [PATCH 1/2] Initial commit
+
+---
+ release/m/myKeyboard/somefile1.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 release/m/myKeyboard/somefile1.txt
+
+diff --git a/release/m/myKeyboard/somefile1.txt b/release/m/myKeyboard/somefile1.txt
+new file mode 100644
+index 0000000..7b57bd2
+--- /dev/null
++++ b/release/m/myKeyboard/somefile1.txt
+@@ -0,0 +1 @@
++some text
+--
+2.24.0
+`,
+        /* #endregion */
+      );
+      const patchFile2 = '0002-Second-commit.patch';
+      const patchFile2FullPath = path.join(keyboardsRepo, patchFile2);
+      fs.appendFileSync(
+        patchFile2FullPath,
+        /* #region patch file 2 */
+        `From d1aa96fc48496cbf535faefee63c914506a846b7 Mon Sep 17 00:00:00 2001
+From: Keyman Developer Online <kdo@example.com>
+Date: Thu, 5 Dec 2019 12:14:04 +0100
+Subject: [PATCH 2/2] Second commit
+
+---
+ release/m/myKeyboard/somefile1.txt | 1 +
+ release/m/myKeyboard/somefile2.txt | 1 +
+ 2 files changed, 2 insertions(+)
+ create mode 100644 release/m/myKeyboard/somefile2.txt
+
+diff --git a/release/m/myKeyboard/somefile1.txt b/release/m/myKeyboard/somefile1.txt
+index 7b57bd2..1f89c65 100644
+--- a/release/m/myKeyboard/somefile1.txt
++++ b/release/m/myKeyboard/somefile1.txt
+@@ -1 +1,2 @@
+ some text
++some more text
+diff --git a/release/m/myKeyboard/somefile2.txt b/release/m/myKeyboard/somefile2.txt
+new file mode 100644
+index 0000000..4d3b8c1
+--- /dev/null
++++ b/release/m/myKeyboard/somefile2.txt
+@@ -0,0 +1 @@
++other text
+--
+2.24.0
+`,
+        /* #endregion */
+      );
+
+      // Execute/Verify
+      sut.importPatches(keyboardsRepo, of(patchFile1, patchFile2)).subscribe({
+        complete: () => {
+          const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
+          expect(fs.existsSync(firstFile)).toBe(true);
+          expect(fs.readFileSync(firstFile).toString()).toEqual('some text\nsome more text\n');
+          const secondFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile2.txt');
+          expect(fs.existsSync(secondFile)).toBe(true);
+          expect(fs.readFileSync(secondFile).toString()).toEqual('other text\n');
+          done();
+        },
+      });
+    });
+  });
+
+  describe('transferChanges', () => {
+    it('applies the changes to keyboards repo', async () => {
       // Execute
+      expect.assertions(4);
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+
       // Verify
+      const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
+      expect(fs.existsSync(firstFile)).toBe(true);
+      expect(fs.readFileSync(firstFile).toString()).toEqual('some text\nsome more text');
+      const secondFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile2.txt');
+      expect(fs.existsSync(secondFile)).toBe(true);
+      expect(fs.readFileSync(secondFile).toString()).toEqual('other text');
     });
   });
 });
