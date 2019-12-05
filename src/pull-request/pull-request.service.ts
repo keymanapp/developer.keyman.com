@@ -11,6 +11,13 @@ import { GitService } from '../git/git.service';
 export class PullRequestService {
   constructor(private gitService: GitService) {}
 
+  public transferChanges(singleKbRepoPath: string, keyboardsRepo: string) {
+    return from(this.extractPatches(singleKbRepoPath)).pipe(
+      map(patchFiles => this.convertPatches(singleKbRepoPath, patchFiles, path.basename(singleKbRepoPath))),
+      flatMap(patchFile => this.importPatches(keyboardsRepo, patchFile)),
+    );
+  }
+
   public async extractPatches(localRepo: string): Promise<string[]> {
     return this.gitService.export(localRepo, 'HEAD', '--root');
   }
