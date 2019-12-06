@@ -45,8 +45,6 @@ export class ConfigService {
     const expiresDays = process.env.EXPIRES_DAYS != null ? process.env.EXPIRES_DAYS : 1;
     const cookieMaxAge = process.env.COOKIE_MAX_AGE != null ? process.env.COOKIE_MAX_AGE : 1;
     const workDirectory = process.env.WORKDIR != null ? process.env.WORKDIR : '/tmp';
-    const upstreamGitHubUrl = process.env.UPSTREAM_GITHUB_URL != null
-        ? process.env.UPSTREAM_GITHUB_URL : 'https://github.com/keymanapp';
 
     const envVarsSchema: Joi.ObjectSchema = Joi.object({
       NODE_ENV: Joi.string()
@@ -69,7 +67,6 @@ export class ConfigService {
       EXPIRES_DAYS: Joi.number().default(expiresDays),
       COOKIE_MAX_AGE: Joi.number().default(cookieMaxAge),
       WORKDIR: Joi.string().default(workDirectory),
-      UPSTREAM_GITHUB_URL: Joi.string().default(upstreamGitHubUrl),
     });
 
     const { error, value: validatedEnvConfig } = envVarsSchema.validate(envConfig);
@@ -115,7 +112,15 @@ export class ConfigService {
     return this.envConfig.WORKDIR;
   }
 
-  public get upstreamGitHubUrl(): string {
-    return this.envConfig.UPSTREAM_GITHUB_URL;
+  // Name of the GitHub organization that hosts the keyboards repo. This property exists
+  // so that we can change the name for e2e tests.
+  public get organizationName() {
+    return 'keymanapp';
+  }
+
+  // Name of the `keyboards` repo. This property exists so that we can change the name
+  // for e2e tests.
+  public get keyboardsRepoName(): string {
+    return 'keyboards';
   }
 }

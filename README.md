@@ -33,7 +33,7 @@ _Client Secret_ that GitHub displays for the app. You should also replace the va
 `SESSION_SECRET` with a random value.
 
 If you want to run all e2e tests, you'll have to create a test user on GitHub. Fork
-[kdotester1/khmer_angkor](https://github.com/kdotester1/khmer_angkor) to your test
+[keymanapp/test_kdo_khmer_angkor](https://github.com/keymanapp/test_kdo_khmer_angkor) to your test
 account and set two environment variables before running the e2e tests:
 
 ```bash

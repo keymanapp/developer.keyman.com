@@ -3,6 +3,7 @@ import { Observable, from, combineLatest } from 'rxjs';
 import { map, toArray, filter, switchMap } from 'rxjs/operators';
 import { GithubService } from '../github/github.service';
 import { BackendProjectService } from '../backend-project/backend-project.service';
+import { ConfigService } from '../config/config.service';
 
 interface Project { name: string; repoUrl?: string; }
 
@@ -11,6 +12,7 @@ export class ProjectsController {
   constructor(
     private readonly githubService: GithubService,
     private readonly backendService: BackendProjectService,
+    private readonly configService: ConfigService,
   ) {}
 
   public get gitHubUrl(): string {
@@ -52,7 +54,7 @@ export class ProjectsController {
     })));
 
     const createKeyboardsRepo = from(
-      this.forkCloneAndUpdateProject(token, session.login, this.backendService.keyboardsRepoName, params.repo, 'master'),
+      this.forkCloneAndUpdateProject(token, session.login, this.configService.keyboardsRepoName, params.repo, 'master'),
     ).pipe(map(project => ({ name: params.repo, repoUrl: project })));
 
     return combineLatest(
@@ -70,9 +72,9 @@ export class ProjectsController {
     remoteBranch: string,
   ): Observable<string> {
     return this.githubService
-      .forkRepo(token, this.githubService.organizationName, repoName, gitHubUser)
+      .forkRepo(token, this.configService.organizationName, repoName, gitHubUser)
       .pipe(switchMap(() => {
-        const remoteKeyboardsRepo = `${this.gitHubUrl}/${gitHubUser}/${this.backendService.keyboardsRepoName}.git`;
+        const remoteKeyboardsRepo = `${this.gitHubUrl}/${gitHubUser}/${this.configService.keyboardsRepoName}.git`;
         const localKeyboardsRepo = this.backendService.localKeyboardsRepo;
         return from(this.backendService.cloneOrUpdateProject(
           remoteKeyboardsRepo,
