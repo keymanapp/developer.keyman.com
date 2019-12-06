@@ -52,12 +52,8 @@ export class BackendProjectService {
     return 'master';
   }
 
-  public get keyboardsRepoName() {
-    return 'keyboards';
-  }
-
   public get localKeyboardsRepo() {
-    return path.join(this.config.workDirectory, this.keyboardsRepoName);
+    return path.join(this.config.workDirectory, this.config.keyboardsRepoName);
   }
 
   public getKeyboardId(repoName: string, localRepo: string): string {

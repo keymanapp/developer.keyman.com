@@ -200,8 +200,4 @@ export class GithubService {
       }),
     );
   }
-
-  public get organizationName() {
-    return 'keymanapp';
-  }
 }

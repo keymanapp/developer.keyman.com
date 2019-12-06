@@ -7,6 +7,7 @@ import session = require('supertest-session');
 import { AppModule } from '../src/app.module';
 import { describeIf } from '../src/utils/test-utils';
 import { GithubService } from '../src/github/github.service';
+import { ConfigService } from '../src/config/config.service';
 
 function canRunTheseTests(): boolean {
   return (
@@ -23,12 +24,15 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
   let testSession: any;
   let authenticatedSession: any;
   let githubService: GithubService;
+  let configService: ConfigService;
 
   async function deleteKeyboardsRepo(): Promise<void> {
-    await httpService.delete(`https://api.github.com/repos/${user}/keyboards`, {
+    const keyboardsRepo = `https://api.github.com/repos/${user}/${configService.keyboardsRepoName}`;
+    await httpService.delete(keyboardsRepo, {
       headers: { Authorization: token },
     }).pipe(catchError(() => empty())).toPromise();
-    await httpService.delete(`https://api.github.com/repos/${user}/keyboards-1`, {
+    // when we try to fork a repo that already exists GitHub creates a repo-1.
+    await httpService.delete(`${keyboardsRepo}-1`, {
       headers: { Authorization: token },
     }).pipe(catchError(() => empty())).toPromise();
   }
@@ -48,8 +52,11 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
 
     httpService = moduleFixture.get<HttpService>(HttpService);
     githubService = moduleFixture.get<GithubService>(GithubService);
-    jest.spyOn(githubService, 'organizationName', 'get')
+    configService = moduleFixture.get<ConfigService>(ConfigService);
+    jest.spyOn(configService, 'organizationName', 'get')
       .mockImplementation(() => 'keymanapptest');
+    jest.spyOn(configService, 'keyboardsRepoName', 'get')
+      .mockImplementation(() => 'test_kdo_keyboards');
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -82,7 +89,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
   it('clones single-keyboard project and forks and clones keyboards repo', async (done) => {
     // Execute/Verify
     authenticatedSession
-      .post('/api/projects/khmer_angkor')
+      .post('/api/projects/test_kdo_khmer_angkor')
       .set('Authorization', token)
       .expect(201)
       .end((err) => {
@@ -93,14 +100,21 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
 
   it('clones single-keyboard project and clones keyboards repo if keyboards repo exists', async done => {
     // Setup
-    await githubService.forkRepo(token, 'keymanapptest', 'keyboards', user).toPromise();
+    await githubService
+      .forkRepo(
+        token,
+        configService.organizationName,
+        configService.keyboardsRepoName,
+        user,
+      )
+      .toPromise();
 
     // Execute/Verify
     authenticatedSession
-      .post('/api/projects/khmer_angkor')
+      .post('/api/projects/test_kdo_khmer_angkor')
       .set('Authorization', token)
       .expect(201)
-      .end((err) => {
+      .end(err => {
         expect(err).toBeNull();
         done();
       });
