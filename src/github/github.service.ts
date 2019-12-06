@@ -9,6 +9,7 @@ import { ConfigService } from '../config/config.service';
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
 import { GitHubUser } from '../interfaces/git-hub-user.interface';
 import { GitHubProject } from '../interfaces/git-hub-project.interface';
+import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
 
 const redirectUri = '/index.html';
 const scope = 'repo read:user user:email';
@@ -202,6 +203,39 @@ export class GithubService {
             catchError(() => of({ name: null })),
           );
       }),
+    );
+  }
+
+  public createPullRequest(
+    token: string, // the token used to authorize with GitHub
+    owner: string, // owner of the repo where the PR will be created in
+    repoName: string, // name of the repo
+    head: string, // name of the branch that contains the new commits. Use `username:branch` for cross-repo PRs
+    base: string, // name of the branch to merge the changes in
+    title: string, // title of the PR
+    description: string, // description of the PR
+  ): Observable<GitHubPullRequest> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
+
+    return this.httpService.post(`https://api.github.com/repos/${owner}/${repoName}/pulls`,
+      null,
+      {
+        headers: { authorization: token },
+        params: {
+          title,
+          head,
+          base,
+          body: description,
+        },
+      },
+    ).pipe(
+      map(result => ({
+        number: result.data.number,
+        url: result.data.url,
+        state: result.data.state,
+      })),
     );
   }
 }

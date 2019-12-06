@@ -364,4 +364,61 @@ describe('GitHub Service', () => {
     });
   });
 
+  describe('createPullRequest', () => {
+    beforeEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('creates a PR', async () => {
+      // Setup
+      expect.assertions(2);
+
+      const result: AxiosResponse = {
+        data: {
+          url: 'https://api.github.com/repos/keymanapp/keyboards/pulls/1347',
+          number: 1347,
+          state: 'open',
+          locked: true,
+          title: 'the title of the PR',
+          body: 'This is the description of the PR',
+        },
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {},
+      };
+      jest.spyOn(spyHttpService, 'post').mockImplementationOnce(() => of(result));
+
+      // Execute
+      const pullRequest = await sut.createPullRequest(
+        '12345',
+        'keymanapp',
+        'keyboards',
+        'foo:foo-myKeyboard',
+        'master',
+        'the title of the PR',
+        'This is the description of the PR')
+        .toPromise();
+
+      // Verify
+      expect(spyHttpService.post).toHaveBeenCalledWith(
+        'https://api.github.com/repos/keymanapp/keyboards/pulls',
+        null,
+        {
+          headers: { authorization: '12345' },
+          params: {
+            title: 'the title of the PR',
+            head: 'foo:foo-myKeyboard',
+            base: 'master',
+            body: 'This is the description of the PR',
+          },
+        },
+      );
+      expect(pullRequest).toEqual({
+        url: 'https://api.github.com/repos/keymanapp/keyboards/pulls/1347',
+        number: 1347,
+        state: 'open',
+      });
+    });
+  });
 });
