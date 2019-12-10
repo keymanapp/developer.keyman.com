@@ -110,6 +110,7 @@ export class GithubService {
     );
   }
 
+  // Get one page full of repos
   private getReposPage(
     url: string,
     token: string,
@@ -124,6 +125,7 @@ export class GithubService {
       );
   }
 
+  // Extract the URL of the next page from the headers
   private getUrlOfNextPage(response: AxiosResponse): string | null {
     let url: string | null = null;
     const link = response.headers.link;
@@ -136,6 +138,8 @@ export class GithubService {
     return url;
   }
 
+  // When we fork a project on GitHub the API call immediately returns before the
+  // repo actually exists. This method waits until the project appears (or timeout).
   public waitForRepoToExist(
     owner: string,
     repo: string,
