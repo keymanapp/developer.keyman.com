@@ -8,6 +8,7 @@ import path = require('path');
 import { GitService } from '../git/git.service';
 import { ConfigService } from '../config/config.service';
 import { ConfigModule } from '../config/config.module';
+import { GithubModule } from '../github/github.module';
 import { deleteFolderRecursive } from '../utils/delete-folder';
 import { PullRequestService } from './pull-request.service';
 
@@ -21,7 +22,7 @@ describe('PullRequestService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule],
+      imports: [ConfigModule, GithubModule],
       providers: [PullRequestService, GitService],
     }).compile();
 
@@ -113,7 +114,7 @@ index c278a75..c048aca 100644
       );
 
       // Execute/Verify
-      sut.convertPatches(workDir, [patchFileFullPath], 'myKeyboard').subscribe({
+      sut.convertPatches([patchFileFullPath], 'myKeyboard').subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
