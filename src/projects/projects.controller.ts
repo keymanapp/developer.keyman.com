@@ -1,9 +1,14 @@
-import { Controller, Get, Headers, Session, Post, Param } from '@nestjs/common';
+import { Controller, Get, Headers, Session, Post, Param, Put } from '@nestjs/common';
 import { Observable, from, combineLatest } from 'rxjs';
-import { map, toArray, filter, switchMap } from 'rxjs/operators';
+import { map, toArray, filter, switchMap, flatMap } from 'rxjs/operators';
+import path = require('path');
+
 import { GithubService } from '../github/github.service';
 import { BackendProjectService } from '../backend-project/backend-project.service';
 import { ConfigService } from '../config/config.service';
+import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
+import { PullRequestService } from '../pull-request/pull-request.service';
+import { GitService } from '../git/git.service';
 
 interface Project { name: string; repoUrl?: string; }
 
@@ -13,6 +18,8 @@ export class ProjectsController {
     private readonly githubService: GithubService,
     private readonly backendService: BackendProjectService,
     private readonly configService: ConfigService,
+    private readonly pullRequestService: PullRequestService,
+    private readonly gitService: GitService,
   ) {}
 
   public get gitHubUrl(): string {
@@ -84,6 +91,39 @@ export class ProjectsController {
           remoteBranch,
         ));
       }),
+    );
+  }
+
+  @Put(':repo')
+  public createPullRequest(
+    @Session() session: any,
+    @Headers('authorization') token: string,
+    @Param() params,
+  ): Observable<GitHubPullRequest> {
+    const head = `${session.login}:${session.login}-${params.repo}`;
+    return this.pullRequestService
+      .transferChanges(
+        path.join(this.configService.workDirectory, session.login, params.repo),
+        this.backendService.localKeyboardsRepo,
+      )
+      .pipe(
+        flatMap(() =>
+          from(
+            this.gitService.push(
+              this.backendService.localKeyboardsRepo,
+              session.login,
+              `${session.login}-${params.repo}`,
+            ),
+          ),
+        ),
+        flatMap(() =>
+          this.pullRequestService.createPullRequestOnKeyboardsRepo(
+            token,
+            head,
+            `Add ${params.repo} keyboard`,
+            `Merge the single keyboard repo ${params.repo} into the keyboards repo. Courtesy of Keyman Developer Online.`,
+          ),
+        ),
       );
   }
 }

@@ -5,16 +5,23 @@ import { map, flatMap } from 'rxjs/operators';
 import fs = require('fs');
 import path = require('path');
 
+import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
+import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
+import { GithubService } from '../github/github.service';
 
 @Injectable()
 export class PullRequestService {
-  constructor(private gitService: GitService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly gitService: GitService,
+    private readonly githubService: GithubService,
+  ) {}
 
-  public transferChanges(singleKbRepoPath: string, keyboardsRepo: string) {
+  public transferChanges(singleKbRepoPath: string, keyboardsRepoPath: string) {
     return from(this.extractPatches(singleKbRepoPath)).pipe(
-      map(patchFiles => this.convertPatches(singleKbRepoPath, patchFiles, path.basename(singleKbRepoPath))),
-      flatMap(patchFile => this.importPatches(keyboardsRepo, patchFile)),
+      map(patchFiles => this.convertPatches(patchFiles, path.basename(singleKbRepoPath))),
+      flatMap(patchFile => this.importPatches(keyboardsRepoPath, patchFile)),
     );
   }
 
@@ -71,5 +78,24 @@ export class PullRequestService {
       `rename $1 ${prefix}/$2`);                  // rename from somefile2.txt
 
     return of(data);
+  }
+
+  public createPullRequestOnKeyboardsRepo(
+    token: string, // the token used to authorize with GitHub
+    head: string, // name of the branch that contains the new commits. Use `username:branch` for cross-repo PRs
+    title: string, // title of the PR
+    description: string, // description of the PR
+  ): Observable<GitHubPullRequest> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
+    return this.githubService.createPullRequest(
+      token,
+      this.config.organizationName,
+      this.config.keyboardsRepoName,
+      head,
+      'master',
+      title,
+      description);
   }
 }
