@@ -1,7 +1,7 @@
 import { HttpService, Injectable } from '@nestjs/common';
 import { AxiosResponse, AxiosRequestConfig } from 'axios';
-import { Observable, of, empty, interval } from 'rxjs';
-import { map, expand, concatMap, catchError, mapTo, switchMap, takeWhile, takeLast } from 'rxjs/operators';
+import { Observable, of, empty, interval, from } from 'rxjs';
+import { map, expand, concatMap, catchError, mapTo, switchMap, takeWhile, takeLast, tap } from 'rxjs/operators';
 
 import { TokenService } from '../token/token.service';
 import { ConfigService } from '../config/config.service';
@@ -146,24 +146,28 @@ export class GithubService {
     repo: string,
     timeoutSeconds: number = 300,
   ): Observable<void> {
+    let firstCheck = true;
     return interval(1000).pipe(
       switchMap((x: number) => {
         if (x >= timeoutSeconds) {
-          throw new Error(`timeout after ${timeoutSeconds} seconds without seeing repo`);
+          throw new Error(
+            `GitHubService.waitForRepoToExist(${owner}/${repo}): timeout after ${timeoutSeconds} seconds without seeing repo`,
+          );
         }
 
         return this.repoExists(owner, repo);
       }),
-      takeWhile(exists => !exists),
+      takeWhile(exists => !exists || firstCheck),
+      tap(() => { firstCheck = false; }),
       takeLast(1),
-      map(() => { /* empty */ }),
+      map(() => { return; }),
     );
   }
 
   public repoExists(owner: string, repo: string): Observable<boolean> {
     return this.httpService.get(`https://github.com/${owner}/${repo}`).pipe(
       mapTo(true),
-      catchError(() => of(false)),
+      catchError(err => of(false)),
     );
   }
 
@@ -194,6 +198,7 @@ export class GithubService {
             },
           )
           .pipe(
+            catchError(() => of({ data: null, full_name: 'error' })),
             switchMap(result => {
               project = result.data;
               return this.waitForRepoToExist(user, repo).pipe(
@@ -219,23 +224,72 @@ export class GithubService {
       return null;
     }
 
-    return this.httpService.post(`https://api.github.com/repos/${owner}/${repoName}/pulls`,
-      null,
-      {
+    return this.httpService
+      .post(`https://api.github.com/repos/${owner}/${repoName}/pulls`, null, {
         headers: { authorization: token },
-        params: {
+        data: {
           title,
           head,
           base,
           body: description,
         },
-      },
-    ).pipe(
-      map(result => ({
-        number: result.data.number,
-        url: result.data.url,
-        state: result.data.state,
-      })),
-    );
+      })
+      .pipe(
+        map(result => ({
+          number: result.data.number,
+          url: result.data.url,
+          state: result.data.state,
+        })),
+        catchError(err => { throw err.response.data.errors; }),
+      );
+  }
+
+  public listPullRequests(
+    token: string, // the token used to authorize with GitHub
+    owner: string, // owner of the repo whose PRs to list
+    repoName: string, // name of the repo
+  ): Observable<GitHubPullRequest> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
+
+    return this.httpService
+      .get(`https://api.github.com/repos/${owner}/${repoName}/pulls`, {
+        headers: {
+          'authorization': token,
+          'Content-Type': 'application/json',
+        },
+      })
+      .pipe(
+        catchError(err => { throw err.response.data.errors; }),
+        map(result => result.data),
+        concatMap((pullRequests: GitHubPullRequest[]) => from(pullRequests)),
+      );
+  }
+
+  public closePullRequest(
+    token: string, // the token used to authorize with GitHub
+    owner: string, // owner of the repo whose PRs to list
+    repoName: string, // name of the repo
+    pullNumber: number, // PR#
+  ): Observable<GitHubPullRequest> {
+    if (token == null || token.length === 0) {
+      return null;
+    }
+
+    return this.httpService
+      .patch(
+        `https://api.github.com/repos/${owner}/${repoName}/pulls/${pullNumber}`, null, {
+          headers: { authorization: token },
+          data: { state: 'closed' },
+        },
+      )
+      .pipe(
+        map(result => ({
+          number: result.data.number,
+          url: result.data.url,
+          state: result.data.state,
+        })),
+      );
   }
 }

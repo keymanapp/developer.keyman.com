@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { Observable, from } from 'rxjs';
-import { map, flatMap } from 'rxjs/operators';
+import { Observable, from, throwError, of } from 'rxjs';
+import { map, flatMap, takeLast, switchMap, mapTo, tap, catchError } from 'rxjs/operators';
 import * as simplegit from 'simple-git/promise';
 import { CommitSummary, FetchResult, PullResult, Options } from 'simple-git/promise';
 import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typings/response';
 
-import fs = require('fs');
 import path = require('path');
+import debugModule = require('debug');
+const debug = debugModule('debug');
+
+import { mkdir, fileExists } from '../utils/file';
+import { exec } from '../utils/child-process';
 
 @Injectable()
 export class GitService {
@@ -14,62 +18,65 @@ export class GitService {
 
   constructor() {
     this.git = simplegit();
+
+    // To enable debug output, set the environment variable DEBUG=debug (or DEBUG=*)
+    if (debugModule.enabled('debug')) {
+      // this.git.customBinary('/home/eberhard/Develop/kdo/gitdebug');
+      this.git.outputHandler((command, stdout, stderr) => {
+        if (command) {
+          debug(`calling: git ${command}`);
+          stdout.pipe(process.stdout);
+          stderr.pipe(process.stderr);
+        }
+      });
+    }
   }
 
-  /*
-  constructor() {
-    this.git = simplegit();
-    this.git.outputHandler((command, stdout, stderr) => {
-      console.log(`calling: git ${command}`);
-      stdout.pipe(process.stdout);
-      stderr.pipe(process.stderr);
-    });
-  }
-  */
-
-  private async addDefaultConfig(): Promise<void> {
+  private addDefaultConfig(): Observable<void> {
     // Set default values
-    await this.git.addConfig('user.name', 'Keyman Developer Online');
-    await this.git.addConfig('user.email', 'kdo@example.com');
-    await this.git.addConfig('commit.gpgSign', 'false');
+    return from(this.git.addConfig('user.name', 'Keyman Developer Online')).pipe(
+      switchMap(() => from(this.git.addConfig('user.email', 'kdo@example.com'))),
+      switchMap(() => from(this.git.addConfig('commit.gpgSign', 'false'))),
+      map(() => { return; }),
+    );
   }
 
-  public async createRepo(
+  public createRepo(
     repoPath: string,
     bare: boolean = false,
-  ): Promise<string> {
-    return new Promise(resolve => {
-      fs.mkdir(repoPath, async () => {
-        await this.git.cwd(repoPath);
-        await this.git.init(bare);
-        await this.addDefaultConfig();
-        resolve(repoPath);
-      });
-    });
+  ): Observable<string> {
+    return mkdir(repoPath).pipe(
+      switchMap(() => from(this.git.cwd(repoPath))),
+      switchMap(() => from(this.git.init(bare))),
+      switchMap(() => this.addDefaultConfig()),
+      mapTo(repoPath),
+    );
   }
 
-  public async addFile(repoDir: string, filename: string): Promise<void> {
-    await this.git.cwd(repoDir);
-    return await this.git.add(filename);
+  public addFile(repoDir: string, filename: string): Observable<void> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.add(filename))),
+    );
   }
 
-  public async commit(
+  public commit(
     repoDir: string,
     message: string,
     options?: Options,
-  ): Promise<CommitSummary> {
-    await this.git.cwd(repoDir);
-    return await this.git.commit(message, null, options);
+  ): Observable<CommitSummary> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.commit(message, null, options))),
+    );
   }
 
-  public async clone(
+  public clone(
     remoteUrl: string,
     localPath: string,
     bare: boolean = false,
     remoteName?: string,
-  ): Promise<string> {
+  ): Observable<string> {
     if (!path.isAbsolute(localPath)) {
-      throw new Error('relative path');
+      return throwError(new Error('relative path'));
     }
 
     const options = [];
@@ -80,160 +87,192 @@ export class GitService {
       options.push(`--origin=${remoteName}`);
     }
 
-    await this.git.clone(remoteUrl, localPath, options);
-    await this.git.cwd(localPath);
-    await this.addDefaultConfig();
-    return localPath;
+    debug(`GitService.clone: cloning ${remoteUrl} into ${localPath} with ${options}`);
+    const parentDir = path.dirname(localPath);
+    return mkdir(parentDir, { recursive: true }).pipe(
+      switchMap(() => from(this.git.cwd(parentDir))),
+      switchMap(() => from(this.git.clone(remoteUrl, localPath, options))),
+      switchMap(() => from(this.git.cwd(localPath))),
+      switchMap(() => this.addDefaultConfig()),
+      mapTo(localPath),
+    );
   }
 
-  public async export(
+  public export(
     repoDir: string,
     commit: string,
     rangeOption: string = null,
-  ): Promise<string[]> {
+  ): Observable<string[]> {
     const args = [];
     args.push('format-patch');
     if (rangeOption) {
       args.push(rangeOption);
     }
     args.push(commit);
-    await this.git.cwd(repoDir);
-    return this.git.raw(args).then(patchNames => {
-      const result = [];
-      for (const patch of patchNames.trim().split('\n')) {
-        result.push(path.join(repoDir, patch.trim()));
-      }
-      return result;
-    });
-  }
-
-  public async import(repoDir: string, patchFiles: string[]): Promise<void> {
-    await this.git.cwd(repoDir);
-    for (const patchFile of patchFiles) {
-      await this.git.raw(['am', patchFile]);
-    }
-    return;
-  }
-
-  public importFiles(repoDir: string, patchFiles: Observable<string>): Observable<void> {
     return from(this.git.cwd(repoDir)).pipe(
-      flatMap(() => patchFiles),
-      flatMap(patchFile => this.git.raw(['am', patchFile])),
-      map(() => { return; }),
+      switchMap(() => from(this.git.raw(args))),
+      map(patchNames => {
+        const result: string[] = [];
+        for (const patch of patchNames.trim().split('\n')) {
+          result.push(path.join(repoDir, patch.trim()));
+        }
+        return result;
+      }),
     );
   }
 
-  public async log(
+  public import(
     repoDir: string,
-    options?: {},
-  ): Promise<ListLogSummary<DefaultLogFields>> {
-    await this.git.cwd(repoDir);
-    if (options) {
-      return this.git.log(options);
-    }
-    return this.git.log();
+    patchFiles: Observable<string>,
+  ): Observable<void> {
+    return from(this.git.cwd(repoDir)).pipe(
+      flatMap(() => patchFiles),
+      flatMap(patchFile => from(this.git.raw(['am', patchFile]))),
+      map(() => { /* void */ }),
+      takeLast(1),
+    );
   }
 
-  public async checkoutBranch(
+  public log(
+    repoDir: string,
+    options?: {},
+  ): Observable<ListLogSummary<DefaultLogFields>> {
+    if (options) {
+      return from(this.git.cwd(repoDir)).pipe(
+        switchMap(() => from(this.git.log(options))),
+      );
+    }
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.log())),
+    );
+  }
+
+  public checkoutBranch(
     repoDir: string,
     name: string,
     trackingBranch?: string,
-  ): Promise<void> {
-    await this.git.cwd(repoDir);
-    if (await this.isBranch(repoDir, name)) {
-      return this.git.checkout(name);
-    }
-
-    if (trackingBranch) {
-      return this.git.checkoutBranch(name, trackingBranch);
-    }
-
-    return this.git.checkoutLocalBranch(name);
+  ): Observable<void> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => this.isBranch(repoDir, name)),
+      switchMap(branchExists => {
+        if (branchExists) {
+          return from(this.git.checkout(name));
+        } else {
+          if (trackingBranch) {
+            return from(this.git.checkoutBranch(name, trackingBranch));
+          } else {
+            return from(this.git.checkoutLocalBranch(name));
+          }
+        }
+      }),
+    );
   }
 
-  public async getBranches(repoDir: string): Promise<BranchSummary> {
-    await this.git.cwd(repoDir);
-    return this.git.branchLocal();
+  public getBranches(repoDir: string): Observable<BranchSummary> {
+    return from(this.git.cwd(repoDir)).pipe(switchMap(() => from(this.git.branchLocal())));
   }
 
-  public async isBranch(repoDir: string, name: string): Promise<boolean> {
-    await this.git.cwd(repoDir);
-    return this.git
-      .branchLocal()
-      .then(
-        branchSummary =>
-          branchSummary.all.findIndex(value => value === name) !== -1,
-      );
+  public isBranch(repoDir: string, name: string): Observable<boolean> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.branchLocal())),
+      map(branchSummary => branchSummary.all.findIndex(value => value === name) !== -1),
+    );
   }
 
-  public async currentBranch(repoDir: string): Promise<string> {
-    await this.git.cwd(repoDir);
-    return this.git.branchLocal().then(branchSummary => branchSummary.current);
+  public currentBranch(repoDir: string): Observable<string> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.branchLocal())),
+      map(branchSummary => branchSummary.current),
+    );
   }
 
-  public async push(
+  public push(
     repoDir: string,
     remote: string,
     branch: string,
-  ): Promise<void> {
-    await this.git.cwd(repoDir);
-    return this.git.push(remote, branch);
+    token: string,
+  ): Observable<void> {
+    debug(`gitservice.push #1: repoDir=${repoDir}, remote=${remote}, branch=${branch}`);
+    // It looks like simplegit has a bug that doesn't allow to specify the extraheader with the
+    // raw method (https://github.com/steveukx/git-js/issues/424).
+    // Directly executing git works...
+    return exec(`git -c http.extraheader="Authorization: ${token}" push ${remote} ${branch}`, {
+      cwd: repoDir,
+    }).pipe(
+      tap(val => debug(`gitservice.push #2 returned ${val}`)),
+      catchError(err => {
+        debug(`gitservice.push #3: got error:`);
+        debug(err);
+        return of(0);
+      }),
+      map(() => {
+        return;
+      }),
+    );
   }
 
-  public async fetch(
+  public fetch(
     repoDir: string,
     remote: string,
     remoteBranch: string,
-  ): Promise<FetchResult> {
-    await this.git.cwd(repoDir);
-    return this.git.fetch(remote, remoteBranch);
+  ): Observable<FetchResult> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.fetch(remote, remoteBranch))),
+    );
   }
 
-  public async pull(
+  public pull(
     repoDir: string,
     remote?: string,
     branch?: string,
-  ): Promise<PullResult> {
-    await this.git.cwd(repoDir);
+  ): Observable<PullResult> {
     if (remote) {
-      return this.git.pull(remote, branch);
+      return from(this.git.cwd(repoDir)).pipe(
+        switchMap(() => from(this.git.pull(remote, branch))),
+      );
     }
-    return this.git.pull();
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.pull())),
+    );
   }
 
-  public async isGitRepo(repoDir: string): Promise<boolean> {
-    return new Promise(resolve => {
-      fs.access(repoDir, fs.constants.R_OK, async err => {
-        if (err) {
-          resolve(false);
-        } else {
-          await this.git.cwd(repoDir);
-          resolve(await this.git.checkIsRepo());
+  public isGitRepo(repoDir: string): Observable<boolean> {
+    return fileExists(repoDir).pipe(
+      switchMap(exists => {
+        if (!exists) {
+          return of(false);
         }
-      });
-    });
+        return from(this.git.cwd(repoDir)).pipe(
+          switchMap(() => from(this.git.checkIsRepo())),
+        );
+      }),
+    );
   }
 
-  public async hasRemote(
+  public hasRemote(
     repoDir: string,
     remoteName: string,
-  ): Promise<boolean> {
-    await this.git.cwd(repoDir);
-    const remotes = await this.git.getRemotes(false);
-    for (const remote of remotes) {
-      if (remote.name === remoteName) {
-        return true;
-      }
-    }
-    return false;
+  ): Observable<boolean> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.getRemotes(false))),
+      map(remotes => {
+        for (const remote of remotes) {
+          if (remote.name === remoteName) {
+            return true;
+          }
+        }
+        return false;
+      }),
+    );
   }
 
-  public async addRemote(
+  public addRemote(
     repoDir: string,
     remoteName: string,
     remoteRepo: string,
-  ): Promise<void> {
-    await this.git.cwd(repoDir);
-    return this.git.addRemote(remoteName, remoteRepo);
+  ): Observable<void> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.addRemote(remoteName, remoteRepo))),
+    );
   }
 }

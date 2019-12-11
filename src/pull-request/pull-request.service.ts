@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { bindNodeCallback, Observable, of, from } from 'rxjs';
-import { map, flatMap } from 'rxjs/operators';
+import { Observable, from } from 'rxjs';
+import { map, flatMap, switchMap } from 'rxjs/operators';
 
-import fs = require('fs');
 import path = require('path');
 
 import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
 import { GithubService } from '../github/github.service';
+import { readFile, writeFile } from '../utils/file';
 
 @Injectable()
 export class PullRequestService {
@@ -18,39 +18,34 @@ export class PullRequestService {
     private readonly githubService: GithubService,
   ) {}
 
-  public transferChanges(singleKbRepoPath: string, keyboardsRepoPath: string) {
-    return from(this.extractPatches(singleKbRepoPath)).pipe(
-      map(patchFiles => this.convertPatches(patchFiles, path.basename(singleKbRepoPath))),
-      flatMap(patchFile => this.importPatches(keyboardsRepoPath, patchFile)),
+  public transferChanges(singleKbRepoPath: string, keyboardsRepoPath: string): Observable<void> {
+    return this.extractPatches(singleKbRepoPath).pipe(
+      switchMap(patchFiles => from(patchFiles)),
+      map(patchFile => this.convertPatch(patchFile, path.basename(singleKbRepoPath))),
+      flatMap(patchFile => this.importPatch(keyboardsRepoPath, patchFile)),
     );
   }
 
-  public async extractPatches(localRepo: string): Promise<string[]> {
+  public extractPatches(localRepo: string): Observable<string[]> {
     return this.gitService.export(localRepo, 'HEAD', '--root');
   }
 
-  public importPatches(
+  public importPatch(
     localRepo: string,
     patchFiles: Observable<string>,
   ): Observable<void> {
-    return this.gitService.importFiles(localRepo, patchFiles);
+    return this.gitService.import(localRepo, patchFiles);
   }
 
-  public convertPatches(
-    patchFiles: string[],
+  public convertPatch(
+    patchFile: string,
     singleKbRepoName: string,
   ): Observable<string> {
     const prefix = this.getNewPathPrefix(singleKbRepoName);
-    const readFileAsObservable = bindNodeCallback(fs.readFile);
-    const writeFileAsObservable = bindNodeCallback(fs.writeFile);
-    return from(patchFiles).pipe(
-      flatMap(patchFile =>
-        readFileAsObservable(patchFile).pipe(
-          flatMap(data => this.convertPatchFile(prefix, data.toString())),
-          flatMap(content => writeFileAsObservable(patchFile, content)),
-          map(() => patchFile),
-        ),
-      ),
+    return readFile(patchFile).pipe(
+      map(data => this.convertPatchFile(prefix, data.toString())),
+      switchMap(content => writeFile(patchFile, content)),
+      map(() => patchFile),
     );
   }
 
@@ -59,7 +54,7 @@ export class PullRequestService {
   }
 
   // Adjust the paths in the patch file to the location in the keyboards repo
-  private convertPatchFile(prefix: string, data: string): Observable<string> {
+  private convertPatchFile(prefix: string, data: string): string {
     data = data.replace(/^ ([0-9A-Za-z_./=> {}-]+ *\| )/gm,
       ` ${prefix}/$1`);                            //  dir1/file1.txt | 3 ++-
     data = data.replace(/^ ([0-9A-Za-z_./ -]+) => ([0-9A-Za-z_./ -]+ *\|)/gm,
@@ -77,12 +72,12 @@ export class PullRequestService {
     data = data.replace(/^rename (from|to) ([0-9A-Za-z_./ -]+)$/gm,
       `rename $1 ${prefix}/$2`);                  // rename from somefile2.txt
 
-    return of(data);
+    return data;
   }
 
   public createPullRequestOnKeyboardsRepo(
     token: string, // the token used to authorize with GitHub
-    head: string, // name of the branch that contains the new commits. Use `username:branch` for cross-repo PRs
+    head: string, // name of the branch that contains the new commits. Use `username/repo:branch` for cross-repo PRs
     title: string, // title of the PR
     description: string, // description of the PR
   ): Observable<GitHubPullRequest> {
@@ -96,6 +91,7 @@ export class PullRequestService {
       head,
       'master',
       title,
-      description);
+      description,
+    );
   }
 }

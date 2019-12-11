@@ -1,6 +1,6 @@
 import { Controller, Get, Headers, Session, Post, Param, Put } from '@nestjs/common';
-import { Observable, from, combineLatest } from 'rxjs';
-import { map, toArray, filter, switchMap, flatMap } from 'rxjs/operators';
+import { Observable, forkJoin } from 'rxjs';
+import { map, toArray, filter, switchMap, last } from 'rxjs/operators';
 import path = require('path');
 
 import { GithubService } from '../github/github.service';
@@ -48,26 +48,30 @@ export class ProjectsController {
   ): Observable<Project> {
     const localRepo = this.backendService.getProjectRepo(session.login, params.repo);
     const remoteRepo = `${this.gitHubUrl}/${session.login}/${params.repo}.git`;
-    const createSingleProject = from(
-      this.backendService.cloneOrUpdateProject(
+
+    const createSingleProject = this.backendService.cloneOrUpdateProject(
         remoteRepo,
         localRepo,
         this.backendService.branchName,
         session.login,
-      ),
-    ).pipe(map(project => ({
-      name: this.backendService.getKeyboardId(params.repo, localRepo),
-      repoUrl: project,
-    })));
+    ).pipe(
+      map(project => ({
+        name: this.backendService.getKeyboardId(params.repo, localRepo),
+        repoUrl: project,
+      })),
+    );
 
-    const createKeyboardsRepo = from(
-      this.forkCloneAndUpdateProject(token, session.login, this.configService.keyboardsRepoName, params.repo, 'master'),
-    ).pipe(map(project => ({ name: params.repo, repoUrl: project })));
+    const createKeyboardsRepo = this.forkCloneAndUpdateProject(
+      token, session.login, this.configService.keyboardsRepoName, params.repo, 'master',
+    ).pipe(
+      map(project => ({ name: params.repo, repoUrl: project })),
+    );
 
-    return combineLatest(
-      createSingleProject,
-      createKeyboardsRepo,
-      result1 => result1,
+    return forkJoin({
+      result1: createSingleProject,
+      result2: createKeyboardsRepo,
+    }).pipe(
+      map((obj) => obj.result1),
     );
   }
 
@@ -80,18 +84,19 @@ export class ProjectsController {
   ): Observable<string> {
     return this.githubService
       .forkRepo(token, this.configService.organizationName, repoName, gitHubUser)
-      .pipe(switchMap(() => {
-        const remoteKeyboardsRepo = `${this.gitHubUrl}/${gitHubUser}/${this.configService.keyboardsRepoName}.git`;
-        const localKeyboardsRepo = this.backendService.localKeyboardsRepo;
-        return from(this.backendService.cloneOrUpdateProject(
-          remoteKeyboardsRepo,
-          localKeyboardsRepo,
-          `${gitHubUser}-${branchName}`,
-          gitHubUser,
-          remoteBranch,
-        ));
-      }),
-    );
+      .pipe(
+        switchMap(() => {
+          const remoteKeyboardsRepo = `${this.gitHubUrl}/${gitHubUser}/${this.configService.keyboardsRepoName}.git`;
+          const localKeyboardsRepo = this.backendService.localKeyboardsRepo;
+          return this.backendService.cloneOrUpdateProject(
+            remoteKeyboardsRepo,
+            localKeyboardsRepo,
+            `${gitHubUser}-${branchName}`,
+            gitHubUser,
+            remoteBranch,
+          );
+        }),
+      );
   }
 
   @Put(':repo')
@@ -107,16 +112,16 @@ export class ProjectsController {
         this.backendService.localKeyboardsRepo,
       )
       .pipe(
-        flatMap(() =>
-          from(
-            this.gitService.push(
-              this.backendService.localKeyboardsRepo,
-              session.login,
-              `${session.login}-${params.repo}`,
-            ),
+        last(),
+        switchMap(() =>
+          this.gitService.push(
+            this.backendService.localKeyboardsRepo,
+            session.login,
+            `${session.login}-${params.repo}`,
+            token,
           ),
         ),
-        flatMap(() =>
+        switchMap(() =>
           this.pullRequestService.createPullRequestOnKeyboardsRepo(
             token,
             head,
