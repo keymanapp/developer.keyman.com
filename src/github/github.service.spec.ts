@@ -362,6 +362,25 @@ describe('GitHub Service', () => {
         expect(spyHttpService.get).toHaveBeenCalledTimes(3);
       }
     });
+
+    it('repo exists right away still allows pipe', async () => {
+      // Setup
+      expect.assertions(2);
+      jest
+        .spyOn(spyHttpService, 'get')
+        .mockImplementationOnce(() => of(resultSuccess))
+        .mockImplementationOnce(() => of(resultSuccess));
+      let tapCalled = false;
+
+      // Execute
+      await sut.waitForRepoToExist('owner', 'repo', 4).pipe(
+        tap(() => tapCalled = true),
+      ).toPromise();
+
+      // Verify
+      expect(spyHttpService.get).toHaveBeenCalledTimes(2);
+      expect(tapCalled).toBe(true);
+    });
   });
 
   describe('createPullRequest', () => {
@@ -406,7 +425,7 @@ describe('GitHub Service', () => {
         null,
         {
           headers: { authorization: '12345' },
-          params: {
+          data: {
             title: 'the title of the PR',
             head: 'foo:foo-myKeyboard',
             base: 'master',

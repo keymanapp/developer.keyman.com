@@ -33,26 +33,26 @@ describe('PullRequestService', () => {
     workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workdir-'));
     jest.spyOn(config, 'workDirectory', 'get').mockReturnValue(workDir);
 
-    singleKeyboardRepo = await gitService.createRepo(
-      path.join(workDir, 'myKeyboard'),
-    );
+    singleKeyboardRepo = await gitService
+      .createRepo(path.join(workDir, 'myKeyboard'))
+      .toPromise();
     const filePath1 = path.join(singleKeyboardRepo, 'somefile1.txt');
     fs.appendFileSync(filePath1, 'some text');
-    await gitService.addFile(singleKeyboardRepo, filePath1);
-    await gitService.commit(singleKeyboardRepo, 'Initial commit');
+    await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
+    await gitService.commit(singleKeyboardRepo, 'Initial commit').toPromise();
 
     fs.appendFileSync(filePath1, '\nsome more text');
     const filePath2 = path.join(singleKeyboardRepo, 'somefile2.txt');
     fs.appendFileSync(filePath2, 'other text');
     await Promise.all([
-      gitService.addFile(singleKeyboardRepo, filePath1),
-      gitService.addFile(singleKeyboardRepo, filePath2),
+      gitService.addFile(singleKeyboardRepo, filePath1).toPromise(),
+      gitService.addFile(singleKeyboardRepo, filePath2).toPromise(),
     ]);
-    await gitService.commit(singleKeyboardRepo, 'Second commit');
+    await gitService.commit(singleKeyboardRepo, 'Second commit').toPromise();
 
-    keyboardsRepo = await gitService.createRepo(
-      path.join(workDir, 'keyboards'),
-    );
+    keyboardsRepo = await gitService
+      .createRepo(path.join(workDir, 'keyboards'))
+      .toPromise();
   });
 
   afterEach(() => {
@@ -66,14 +66,14 @@ describe('PullRequestService', () => {
   describe('extractPatch', () => {
     it('can extract patches for all commits', async () => {
       // Execute
-      const patches = await sut.extractPatches(singleKeyboardRepo);
+      const patches = await sut.extractPatches(singleKeyboardRepo).toPromise();
 
       // Verify
       expect(patches.length).toEqual(2);
     });
   });
 
-  describe('convertPatches', () => {
+  describe('convertPatch', () => {
     it('adjusts the paths of modified files', done => {
       // Setup
       expect.assertions(1);
@@ -114,7 +114,7 @@ index c278a75..c048aca 100644
       );
 
       // Execute/Verify
-      sut.convertPatches([patchFileFullPath], 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -192,7 +192,7 @@ index 095ee29..0000000
       );
 
       // Execute/Verify
-      sut.convertPatches([patchFileFullPath], 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -268,7 +268,7 @@ index 0000000..c44fd7c
       );
 
       // Execute/Verify
-      sut.convertPatches([patchFileFullPath], 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -332,7 +332,7 @@ rename to somefile3.txt
       );
 
       // Execute/Verify
-      sut.convertPatches([patchFileFullPath], 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -384,7 +384,7 @@ rename to this/is/a/long/path/somefile3.txt
       );
 
       // Execute/Verify
-      sut.convertPatches([patchFileFullPath], 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -479,7 +479,7 @@ index 0000000..4d3b8c1
       );
 
       // Execute/Verify
-      sut.importPatches(keyboardsRepo, of(patchFile1, patchFile2)).subscribe({
+      sut.importPatch(keyboardsRepo, of(patchFile1, patchFile2)).subscribe({
         complete: () => {
           const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
           expect(fs.existsSync(firstFile)).toBe(true);

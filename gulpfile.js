@@ -127,6 +127,7 @@ exports.build = series(buildBackend, buildFrontend)
 exports.test = series(testBackend, testFrontend)
 exports.lint = series(lintBackend, lintFrontend)
 exports.e2e = series(e2eBackend, e2eFrontend)
+exports.e2eBackend = series(e2eBackend)
 exports.install = series(installBackend, installFrontend)
 exports.installCi = series(installBackendCi, installFrontendCi)
 exports.cibuild = series(

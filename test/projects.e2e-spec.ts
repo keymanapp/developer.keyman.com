@@ -1,13 +1,22 @@
 import { HttpService, INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as base64 from 'base-64';
-import { empty } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { empty, Observable, interval, from, forkJoin, of } from 'rxjs';
+import { catchError, switchMap, takeWhile, takeLast, map, tap, mapTo } from 'rxjs/operators';
 import session = require('supertest-session');
+import * as simplegit from 'simple-git/promise';
 import { AppModule } from '../src/app.module';
 import { describeIf } from '../src/utils/test-utils';
+import { fileExists } from '../src/utils/file';
 import { GithubService } from '../src/github/github.service';
 import { ConfigService } from '../src/config/config.service';
+import { GitHubPullRequest } from '../src/interfaces/git-hub-pull-request.interface';
+import { deleteFolderRecursive } from '../src/utils/delete-folder';
+
+import fs = require('fs');
+import path = require('path');
+import debugModule = require('debug');
+const debug = debugModule('debug');
 
 function canRunTheseTests(): boolean {
   return (
@@ -25,20 +34,127 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
   let authenticatedSession: any;
   let githubService: GithubService;
   let configService: ConfigService;
+  let git: simplegit.SimpleGit;
 
-  async function deleteKeyboardsRepo(): Promise<void> {
+  function deleteKeyboardsRepo(): Observable<void> {
     const keyboardsRepo = `https://api.github.com/repos/${user}/${configService.keyboardsRepoName}`;
-    await httpService.delete(keyboardsRepo, {
+    return httpService.delete(keyboardsRepo, {
       headers: { Authorization: token },
-    }).pipe(catchError(() => empty())).toPromise();
-    // when we try to fork a repo that already exists GitHub creates a repo-1.
-    await httpService.delete(`${keyboardsRepo}-1`, {
-      headers: { Authorization: token },
-    }).pipe(catchError(() => empty())).toPromise();
+    }).pipe(
+      catchError(err => of({ data: err })),
+      // when we try to fork a repo that already exists GitHub creates a repo-1, so we delete
+      // that as well
+      switchMap(() => httpService.delete(`${keyboardsRepo}-1`, {
+        headers: { Authorization: token },
+      })),
+      catchError(err => of({ data: err })),
+      switchMap(() => {
+        const keyboardsRepoGone = waitForRepoToNotExist(user, configService.keyboardsRepoName);
+        const keyboardsRepo1Gone = waitForRepoToNotExist(user, `${configService.keyboardsRepoName}-1`);
+        return forkJoin({ keyboardsRepoGone, keyboardsRepo1Gone });
+      }),
+      catchError(err => empty()),
+      map(() => { return; }),
+    );
+  }
+
+  function waitForRepoToNotExist(
+    owner: string,
+    repo: string,
+    timeoutSeconds: number = 300,
+  ): Observable<void> {
+    return interval(1000).pipe(
+      switchMap((x: number) => {
+        if (x >= timeoutSeconds) {
+          throw new Error(`timeout after ${timeoutSeconds} seconds without seeing repo`);
+        }
+
+        return githubService.repoExists(owner, repo);
+      }),
+      takeWhile(exists => exists as boolean),
+      takeLast(1),
+      map(() => { /* empty */ }),
+    );
+  }
+
+  function authenticate(): Promise<void> {
+    return new Promise((resolve, reject) => {
+    testSession
+      .get(`/api/auth/user/test/${user}`)
+      .set('Authorization', token)
+      .expect(200)
+      .end((err: any, res: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            authenticatedSession = testSession;
+            resolve(res);
+          }
+      });
+    });
+  }
+
+  function deleteLocalRepos() {
+    const keyboardsRepo = path.join(
+      configService.workDirectory,
+      configService.keyboardsRepoName,
+    );
+    deleteFolderRecursive(keyboardsRepo);
+
+    const testRepo = path.join(
+      configService.workDirectory,
+      user,
+      'test_kdo_khmer_angkor',
+    );
+    deleteFolderRecursive(testRepo);
+  }
+
+  function cleanKeyboardsRepo(): Observable<void> {
+    const keyboardsRepo = path.join(
+      configService.workDirectory,
+      configService.keyboardsRepoName,
+    );
+    return from(fileExists(keyboardsRepo)).pipe(
+      switchMap(exists => {
+        if (!exists) {
+          return empty();
+        }
+        return from(git.cwd(keyboardsRepo)).pipe(
+          switchMap(() =>
+            fileExists(path.join(keyboardsRepo, '.git', 'rebase-apply')),
+          ),
+          switchMap(rebaseApplyExists => {
+            if (rebaseApplyExists) {
+              return from(git.raw(['am', '--abort']));
+            }
+            return from('');
+          }),
+          switchMap(() => from(git.clean('f', ['-d', '-x']))),
+          switchMap(() => from(git.raw(['reset', '--hard', `${user}/master`]))),
+          switchMap(() => empty()),
+          catchError(() => empty()),
+        );
+      }),
+    );
+  }
+
+  function closeAllPullRequests(): Observable<void> {
+    return githubService.listPullRequests(
+      token,
+      configService.organizationName,
+      configService.keyboardsRepoName,
+    ).pipe(
+      switchMap(pullRequest => githubService.closePullRequest(
+          token,
+          configService.organizationName,
+          configService.keyboardsRepoName,
+        pullRequest.number)),
+      map(() => { return; }),
+    );
   }
 
   beforeAll(async () => {
-    jest.setTimeout(20000);
+    jest.setTimeout(60000 /* 60s */);
     jest.useRealTimers();
     const accessToken = process.env.TEST_GITHUB_TOKEN;
     user = process.env.TEST_GITHUB_USER;
@@ -53,6 +169,8 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     httpService = moduleFixture.get<HttpService>(HttpService);
     githubService = moduleFixture.get<GithubService>(GithubService);
     configService = moduleFixture.get<ConfigService>(ConfigService);
+    git = simplegit();
+
     jest.spyOn(configService, 'organizationName', 'get')
       .mockImplementation(() => 'keymanapptest');
     jest.spyOn(configService, 'keyboardsRepoName', 'get')
@@ -63,60 +181,89 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     await app.init();
 
     testSession = session(app.getHttpServer());
+    await authenticate();
+    await cleanKeyboardsRepo().toPromise();
+    const delKeyboardsRepo = deleteKeyboardsRepo().toPromise();
+    deleteLocalRepos();
+    await delKeyboardsRepo;
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  beforeEach(async (done) => {
-    await deleteKeyboardsRepo();
-    testSession
-      .get(`/api/auth/user/test/${user}`)
-      .set('Authorization', token)
-      .expect(200)
-      .end((err: any, res: any) => {
-        if (err) { return done(err); }
-        authenticatedSession = testSession;
-        return done();
-      });
+  beforeEach(async () => {
+    jest.resetModules();
+    await authenticate();
   });
 
   afterEach(async () => {
-    await deleteKeyboardsRepo();
+    await closeAllPullRequests().pipe(
+      catchError(() => empty()),
+      switchMap(() => cleanKeyboardsRepo()),
+      catchError(() => empty()),
+      switchMap(() => deleteKeyboardsRepo()),
+      catchError(() => empty()),
+      map(() => deleteLocalRepos()),
+    ).toPromise();
   });
 
-  it('clones single-keyboard project and forks and clones keyboards repo', async (done) => {
-    // Execute/Verify
-    authenticatedSession
-      .post('/api/projects/test_kdo_khmer_angkor')
-      .set('Authorization', token)
-      .expect(201)
-      .end((err) => {
-        expect(err).toBeNull();
-        done();
-      });
-  });
+  describe('create project: /api/projects/ (POST)', () => {
+    it('clones single-keyboard project and forks and clones keyboards repo', () => {
+      // Execute/Verify
+      return authenticatedSession
+        .post('/api/projects/test_kdo_khmer_angkor')
+        .set('Authorization', token)
+        .expect(201)
+        .then(() => {
+          const keyboardsRepo = path.join(
+            configService.workDirectory,
+            configService.keyboardsRepoName,
+          );
+          expect(fs.existsSync(keyboardsRepo)).toBe(true);
+        });
+    });
 
-  it('clones single-keyboard project and clones keyboards repo if keyboards repo exists', async done => {
-    // Setup
-    await githubService
-      .forkRepo(
+    it('clones single-keyboard project and clones keyboards repo if keyboards repo exists', async () => {
+      // Setup
+      await githubService.forkRepo(
         token,
         configService.organizationName,
         configService.keyboardsRepoName,
         user,
-      )
-      .toPromise();
+      ).toPromise();
 
-    // Execute/Verify
-    authenticatedSession
-      .post('/api/projects/test_kdo_khmer_angkor')
-      .set('Authorization', token)
-      .expect(201)
-      .end(err => {
-        expect(err).toBeNull();
-        done();
-      });
+      // Execute/Verify
+      return authenticatedSession
+        .post('/api/projects/test_kdo_khmer_angkor')
+        .set('Authorization', token)
+        .expect(201)
+        .then(() => {
+          const keyboardsRepo = path.join(
+            configService.workDirectory,
+            configService.keyboardsRepoName,
+          );
+          expect(fs.existsSync(keyboardsRepo)).toBe(true);
+        });
+    });
+  });
+
+  describe('create PR: /api/projects/ (PUT)', () => {
+    it('can create PR', async () => {
+      // Setup
+      jest.setTimeout(300000 /* 5m */);
+      await from(authenticatedSession
+        .post('/api/projects/test_kdo_khmer_angkor')
+        .set('Authorization', token)).toPromise();
+
+      // Execute/Verify
+      return authenticatedSession
+        .put('/api/projects/test_kdo_khmer_angkor')
+        .set('Authorization', token)
+        .expect(200)
+        .then((data: GitHubPullRequest) => {
+          expect(data.number).not.toBe(null);
+        });
+    });
   });
 });

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectsController } from './projects.controller';
 import { HttpModule } from '@nestjs/common/http';
-import { of, empty, from } from 'rxjs';
+import { of, empty } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import fs = require('fs');
@@ -53,11 +53,11 @@ describe('Projects Controller', () => {
     fs.mkdirSync(path.join(gitHubDir, 'dummy'));
     const keyboardsDummyRepo = await gitService.createRepo(
       path.join(gitHubDir, 'dummy', 'keyboards'),
-    );
+    ).toPromise();
     const readme = path.join(keyboardsDummyRepo, 'README.md');
     fs.appendFileSync(readme, 'Readme');
-    await gitService.addFile(keyboardsDummyRepo, readme);
-    await gitService.commit(keyboardsDummyRepo, 'Initial commit');
+    await gitService.addFile(keyboardsDummyRepo, readme).toPromise();
+    await gitService.commit(keyboardsDummyRepo, 'Initial commit').toPromise();
     return keyboardsDummyRepo;
   }
 
@@ -71,7 +71,7 @@ describe('Projects Controller', () => {
       keyboardsDummyRepo,
       path.join(gitHubDir, user, 'keyboards.git'),
       true,
-    );
+    ).toPromise();
   }
 
   async function createGlobalKeyboardsRepo(gitHubDir: string): Promise<void> {
@@ -81,7 +81,7 @@ describe('Projects Controller', () => {
       keyboardsDummyRepo,
       path.join(gitHubDir, 'keymanapp', 'keyboards.git'),
       true,
-    );
+    ).toPromise();
   }
 
   it('should be defined', () => {
@@ -141,22 +141,20 @@ describe('Projects Controller', () => {
       jest.spyOn(sut, 'gitHubUrl', 'get').mockReturnValue(gitHubDir);
 
       // create single keyboard repo
-      const repoDir = await gitService.createRepo(path.join(gitHubDir, 'tmpTestRepo'));
+      const repoDir = await gitService.createRepo(path.join(gitHubDir, 'tmpTestRepo')).toPromise();
       const filePath1 = path.join(repoDir, 'somefile1.txt');
       const filePath2 = path.join(repoDir, 'somefile2.txt');
       fs.appendFileSync(filePath1, 'some text');
       fs.appendFileSync(filePath2, 'other text');
       await Promise.all([
-        gitService.addFile(repoDir, filePath1),
-        gitService.addFile(repoDir, filePath2),
+        gitService.addFile(repoDir, filePath1).toPromise(),
+        gitService.addFile(repoDir, filePath2).toPromise(),
       ]);
-      await gitService.commit(repoDir, 'Initial commit');
+      await gitService.commit(repoDir, 'Initial commit').toPromise();
 
-      await gitService.clone(
-        repoDir,
-        path.join(gitHubDir, 'foo', 'remoteTestRepo.git'),
-        true,
-      );
+      await gitService
+        .clone(repoDir, path.join(gitHubDir, 'foo', 'remoteTestRepo.git'), true)
+        .toPromise();
     });
 
     afterEach(() => {
@@ -183,7 +181,9 @@ describe('Projects Controller', () => {
       // Should clone keyboards repo
       const expectedKeyboardsRepo = path.join(workDir, 'keyboards');
       expect(fs.existsSync(path.join(expectedKeyboardsRepo, '.git'))).toBe(true);
-      expect(await gitService.currentBranch(expectedKeyboardsRepo)).toEqual('foo-remoteTestRepo');
+      expect(
+        await gitService.currentBranch(expectedKeyboardsRepo).toPromise(),
+      ).toEqual('foo-remoteTestRepo');
     });
 
     it('clones single-keyboard repo and forks keyboards repo', async () => {
@@ -196,11 +196,11 @@ describe('Projects Controller', () => {
       jest
         .spyOn(githubService, 'forkRepo')
         .mockImplementation(() => {
-          return from(gitService.clone(
+          return gitService.clone(
               path.join(gitHubDir, 'dummy', 'keyboards'),
               path.join(gitHubDir, 'foo', 'keyboards.git'),
               true,
-          )).pipe(
+          ).pipe(
             map(() => ({ name: 'foo' })),
           );
         });
@@ -225,7 +225,9 @@ describe('Projects Controller', () => {
       // Should clone keyboards repo
       const expectedKeyboardsRepo = path.join(workDir, 'keyboards');
       expect(fs.existsSync(path.join(expectedKeyboardsRepo, '.git'))).toBe(true);
-      expect(await gitService.currentBranch(expectedKeyboardsRepo)).toEqual('foo-remoteTestRepo');
+      expect(
+        await gitService.currentBranch(expectedKeyboardsRepo).toPromise(),
+      ).toEqual('foo-remoteTestRepo');
     });
   });
 
@@ -244,23 +246,30 @@ describe('Projects Controller', () => {
       jest.spyOn(sut, 'gitHubUrl', 'get').mockReturnValue(gitHubDir);
 
       // create single keyboard repo
-      const repoDir = await gitService.createRepo(
-        path.join(workDir, 'tmpTestRepo'),
-      );
+      const repoDir = await gitService
+        .createRepo(path.join(workDir, 'tmpTestRepo'))
+        .toPromise();
       const filePath1 = path.join(repoDir, 'somefile1.txt');
       fs.appendFileSync(filePath1, 'some text');
-      await gitService.addFile(repoDir, filePath1);
-      await gitService.commit(repoDir, 'Initial commit');
+      await gitService.addFile(repoDir, filePath1).toPromise();
+      await gitService.commit(repoDir, 'Initial commit').toPromise();
 
-      await gitService.clone(
-        repoDir,
-        path.join(workDir, 'jdoe', 'myKeyboard'),
-        false,
-      );
+      await gitService
+        .clone(repoDir, path.join(workDir, 'jdoe', 'myKeyboard'), false)
+        .toPromise();
 
       gitHubKeyboardsRepo = await createKeyboardsRepoForUser('jdoe', gitHubDir);
-      localKeyboardsRepo = await gitService.clone(gitHubKeyboardsRepo, path.join(workDir, 'keyboards'), false, 'jdoe');
-      await gitService.checkoutBranch(localKeyboardsRepo, 'jdoe-myKeyboard');
+      localKeyboardsRepo = await gitService
+        .clone(
+          gitHubKeyboardsRepo,
+          path.join(workDir, 'keyboards'),
+          false,
+          'jdoe',
+        )
+        .toPromise();
+      await gitService
+        .checkoutBranch(localKeyboardsRepo, 'jdoe-myKeyboard')
+        .toPromise();
     });
 
     afterEach(() => {
@@ -282,22 +291,27 @@ describe('Projects Controller', () => {
         }));
 
       // Execute
-      await sut
-        .createPullRequest(session, 'token 12345', {
-          repo: 'myKeyboard',
-        })
-        .toPromise();
+      await sut.createPullRequest(
+        session,
+        'token 12345',
+        { repo: 'myKeyboard' },
+      ).toPromise();
 
       // Verify
       // should apply patches to keyboards repo
       expect(
         fs.existsSync(path.join(localKeyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt')),
       ).toBe(true);
-      expect(await gitService.currentBranch(localKeyboardsRepo)).toEqual('jdoe-myKeyboard');
+      expect(await gitService.currentBranch(localKeyboardsRepo).toPromise())
+        .toEqual('jdoe-myKeyboard');
 
       // should have pushed to keyboards repo on GitHub
-      const gitHubCommit = await gitService.log(gitHubKeyboardsRepo, { '-1': null, 'jdoe-myKeyboard': null });
-      const expectedCommit = await gitService.log(localKeyboardsRepo, { '-1': null });
+      const gitHubCommit = await gitService
+        .log(gitHubKeyboardsRepo, { '-1': null, 'jdoe-myKeyboard': null })
+        .toPromise();
+      const expectedCommit = await gitService
+        .log(localKeyboardsRepo, { '-1': null })
+        .toPromise();
       expect(gitHubCommit.latest.hash).toEqual(expectedCommit.latest.hash);
 
       // should have created PR
@@ -308,7 +322,8 @@ describe('Projects Controller', () => {
         'jdoe:jdoe-myKeyboard',
         'master',
         'Add myKeyboard keyboard',
-        'Merge the single keyboard repo myKeyboard into the keyboards repo. Courtesy of Keyman Developer Online.');
+        'Merge the single keyboard repo myKeyboard into the keyboards repo. Courtesy of Keyman Developer Online.',
+      );
     });
   });
 });
