@@ -176,7 +176,7 @@ describe('Projects Controller', () => {
 
       // Verify
       // Should clone single-keyboards repo
-      const expectedRepo = path.join(workDir, 'foo-remoteTestRepo');
+      const expectedRepo = path.join(workDir, 'foo', 'remoteTestRepo');
       expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
       expect(project).toEqual({ repoUrl: expectedRepo, name: 'remoteTestRepo' });
 
@@ -212,7 +212,7 @@ describe('Projects Controller', () => {
 
       // Verify
       // Should clone single-keyboards repo
-      const expectedRepo = path.join(workDir, 'foo-remoteTestRepo');
+      const expectedRepo = path.join(workDir, 'foo', 'remoteTestRepo');
       expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
       expect(project).toEqual({
         repoUrl: expectedRepo,
