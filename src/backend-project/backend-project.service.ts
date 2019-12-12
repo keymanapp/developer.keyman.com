@@ -10,7 +10,7 @@ export class BackendProjectService {
   constructor(private config: ConfigService, private gitService: GitService) {}
 
   public getProjectRepo(userName: string, projectName: string): string {
-    return path.join(this.config.workDirectory, `${userName}-${projectName}`);
+    return path.join(this.config.workDirectory, userName, projectName);
   }
 
   public async cloneOrUpdateProject(
