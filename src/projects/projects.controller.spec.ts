@@ -34,7 +34,6 @@ describe('Projects Controller', () => {
           useFactory: () => ({
             getRepos: jest.fn(() => true),
             forkRepo: jest.fn(() => of({ name: 'foo' })),
-            organizationName: jest.fn(() => 'keymanapp'),
           }),
         },
         GitService,
