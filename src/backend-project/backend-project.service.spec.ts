@@ -63,7 +63,7 @@ describe('BackendProjectService', () => {
 
   it('returns expected reponame', () => {
     expect(sut.getProjectRepo('jdoe', 'testproject')).toEqual(
-      path.join(workDir, 'jdoe-testproject'),
+      path.join(workDir, 'jdoe', 'testproject'),
     );
   });
 
@@ -71,7 +71,7 @@ describe('BackendProjectService', () => {
     it('does clone remote project if it does not exist locally', async () => {
       // Setup
       expect.assertions(3);
-      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe', 'testproject');
 
       // Execute
       const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'master', 'jdoe');
@@ -86,7 +86,7 @@ describe('BackendProjectService', () => {
       // Setup
       expect.assertions(4);
       const setupRepo = await gitService.clone(remoteRepo, path.join(config.workDirectory, 'setuprepo'));
-      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe', 'testproject');
       await gitService.clone(remoteRepo, expectedCloneDir);
       const secondCommit = await gitService.commit(setupRepo, 'empty commit', { '--allow-empty': null });
       await gitService.push(setupRepo, 'origin', 'master');
@@ -106,7 +106,7 @@ describe('BackendProjectService', () => {
     it('works with different local branch name if it does not exist locally', async () => {
       // Setup
       expect.assertions(3);
-      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe', 'testproject');
 
       // Execute
       const cloneDir = await sut.cloneOrUpdateProject(remoteRepo, expectedCloneDir, 'local-branch', 'jdoe', 'master');
@@ -121,7 +121,7 @@ describe('BackendProjectService', () => {
       // Setup
       expect.assertions(4);
       const setupRepo = await gitService.clone(remoteRepo, path.join(config.workDirectory, 'setuprepo'));
-      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe', 'testproject');
       await gitService.clone(remoteRepo, expectedCloneDir);
       const secondCommit = await gitService.commit(setupRepo, 'empty commit', { '--allow-empty': null });
       await gitService.push(setupRepo, 'origin', 'master');
@@ -145,7 +145,7 @@ describe('BackendProjectService', () => {
 
       // Setup
       const setupRepo = await gitService.clone(remoteRepo, path.join(config.workDirectory, 'setuprepo'));
-      const expectedCloneDir = path.join(config.workDirectory, 'jdoe-testproject');
+      const expectedCloneDir = path.join(config.workDirectory, 'jdoe', 'testproject');
       await gitService.clone(remoteRepo, expectedCloneDir);
       const secondCommit = await gitService.commit(setupRepo, 'empty commit', { '--allow-empty': null });
       await gitService.push(setupRepo, 'origin', 'master');
