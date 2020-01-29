@@ -633,4 +633,26 @@ describe('GitService', () => {
       expect(await sut.hasRemote(cloneDir, 'jdoe').toPromise()).toBe(true);
     });
   });
+
+  describe('createNote', () => {
+    it('can create a note', async () => {
+      // Setup
+      expect.assertions(2);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      await createInitialCommit(sut, repoDir).toPromise();
+
+      // Execute
+      await sut.createNote(repoDir, 'HEAD', 'Imported from deadbeef').toPromise();
+
+      // Verify
+      const notes = await from(git.cwd(repoDir)).pipe(
+        switchMap(() => from(git.raw(['notes', '--ref=kdo', 'list']))),
+      ).toPromise();
+      expect(notes).not.toBeNull();
+      const message = await from(git.cwd(repoDir)).pipe(
+        switchMap(() => from(git.raw(['notes', '--ref=kdo', 'show', notes.split(new RegExp(/ |\r|\n/))[1]]))),
+      ).toPromise();
+      expect(message).toMatch(/Imported from deadbeef/);
+    });
+  });
 });

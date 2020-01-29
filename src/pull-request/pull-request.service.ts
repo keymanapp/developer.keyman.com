@@ -71,7 +71,7 @@ export class PullRequestService {
     data = data.replace(/^(---|\+\+\+) (a|b)\/([0-9A-Za-z_./-]+)/gm,
       `$1 $2/${prefix}/$3`);                       // --- a/dir1/file1.txt
     data = data.replace(/^rename (from|to) ([0-9A-Za-z_./ -]+)$/gm,
-      `rename $1 ${prefix}/$2`);                  // rename from somefile2.txt
+      `rename $1 ${prefix}/$2`);                   // rename from somefile2.txt
 
     return data;
   }
@@ -95,4 +95,13 @@ export class PullRequestService {
       description,
     );
   }
+
 }
+
+// git notes --ref=kdo add <commit> -m <message>
+// git log --notes=kdo --pretty=format:'%H %N'
+// in singlekb: find first commit with note (if any). Extract keyboards commit and reset
+// keyboards repo to that.
+// Message text:
+// in keyboards: KDO imported from %H
+// in singlekb:  KDO exported to %H

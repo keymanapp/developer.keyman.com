@@ -271,4 +271,15 @@ export class GitService {
       switchMap(() => from(this.git.addRemote(remoteName, remoteRepo))),
     );
   }
+
+  public createNote(
+    repoDir: string,
+    commitSha: string,
+    message: string,
+  ): Observable<void> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.raw(['notes', '--ref=kdo', 'add', commitSha, '-m', message]))),
+      map(() => { return; }),
+    );
+  }
 }
