@@ -24,7 +24,7 @@ describe('Observable child-process methods', () => {
       const file = path.join(tmpDir, 'exec-file1');
 
       // Execute
-      await exec(`touch ${file}`, { }).toPromise();
+      await exec(`echo "Hello world" > ${file}`, { }).toPromise();
 
       // Verify
       expect(await fileExists(file).toPromise()).toBe(true);
@@ -32,10 +32,10 @@ describe('Observable child-process methods', () => {
 
     it('executes the command in workdir', async () => {
       // Setup
-      const file = path.join(tmpDir, 'exec-file1');
+      const file = path.join(tmpDir, 'exec-file2');
 
       // Execute
-      await exec(`touch exec-file1`, { cwd: tmpDir }).toPromise();
+      await exec(`echo "Hello world" > exec-file2`, { cwd: tmpDir }).toPromise();
 
       // Verify
       expect(await fileExists(file).toPromise()).toBe(true);

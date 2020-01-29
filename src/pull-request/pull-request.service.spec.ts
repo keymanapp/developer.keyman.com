@@ -41,7 +41,7 @@ describe('PullRequestService', () => {
     await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
     await gitService.commit(singleKeyboardRepo, 'Initial commit').toPromise();
 
-    fs.appendFileSync(filePath1, '\nsome more text');
+    fs.appendFileSync(filePath1, `${os.EOL}some more text`);
     const filePath2 = path.join(singleKeyboardRepo, 'somefile2.txt');
     fs.appendFileSync(filePath2, 'other text');
     await Promise.all([
@@ -483,10 +483,10 @@ index 0000000..4d3b8c1
         complete: () => {
           const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
           expect(fs.existsSync(firstFile)).toBe(true);
-          expect(fs.readFileSync(firstFile).toString()).toEqual('some text\nsome more text\n');
+          expect(fs.readFileSync(firstFile).toString()).toEqual(`some text${os.EOL}some more text${os.EOL}`);
           const secondFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile2.txt');
           expect(fs.existsSync(secondFile)).toBe(true);
-          expect(fs.readFileSync(secondFile).toString()).toEqual('other text\n');
+          expect(fs.readFileSync(secondFile).toString()).toEqual(`other text${os.EOL}`);
           done();
         },
       });
@@ -502,7 +502,7 @@ index 0000000..4d3b8c1
       // Verify
       const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
       expect(fs.existsSync(firstFile)).toBe(true);
-      expect(fs.readFileSync(firstFile).toString()).toEqual('some text\nsome more text');
+      expect(fs.readFileSync(firstFile).toString()).toEqual(`some text${os.EOL}some more text`);
       const secondFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile2.txt');
       expect(fs.existsSync(secondFile)).toBe(true);
       expect(fs.readFileSync(secondFile).toString()).toEqual('other text');

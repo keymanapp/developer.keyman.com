@@ -50,7 +50,8 @@ export class PullRequestService {
   }
 
   private getNewPathPrefix(singleRepoName: string): string {
-    return path.join('release', singleRepoName.substring(0, 1), singleRepoName);
+    // git uses / as directory separator, even on Windows
+    return `release/${singleRepoName.substring(0, 1)}/${singleRepoName}`;
   }
 
   // Adjust the paths in the patch file to the location in the keyboards repo
