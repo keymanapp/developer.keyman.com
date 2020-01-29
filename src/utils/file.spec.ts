@@ -113,7 +113,10 @@ describe('Observable file methods', () => {
       const dir = await mkdtemp(prefix).toPromise();
 
       // Verify
-      const expected = new RegExp(`^${prefix}.+`);
+      // Double the backslash (Windows directory separator) so that they
+      // are suitable for use in a regexp.
+      const sanitizedPrefix = prefix.replace(new RegExp('\\\\', 'g'), '\\\\');
+      const expected = new RegExp(`^${sanitizedPrefix}.+`);
       expect(dir).toMatch(expected);
     });
   });
