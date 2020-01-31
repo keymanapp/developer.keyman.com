@@ -12,6 +12,9 @@ import { GitService } from '../git/git.service';
 
 interface Project { name: string; repoUrl?: string; }
 
+const prTitle = 'Add ${repo} keyboard';
+const prDescription = 'Merge the single keyboard repo ${repo} into the keyboards repo. Courtesy of Keyman Developer Online.';
+
 @Controller('projects')
 export class ProjectsController {
   constructor(
@@ -125,8 +128,8 @@ export class ProjectsController {
           this.pullRequestService.createPullRequestOnKeyboardsRepo(
             token,
             head,
-            `Add ${params.repo} keyboard`,
-            `Merge the single keyboard repo ${params.repo} into the keyboards repo. Courtesy of Keyman Developer Online.`,
+            prTitle.replace('${repo}', params.repo),
+            prDescription.replace('${repo}', params.repo),
           ),
         ),
       );

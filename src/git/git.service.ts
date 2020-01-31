@@ -12,6 +12,9 @@ const debug = debugModule('debug');
 import { mkdir, fileExists } from '../utils/file';
 import { exec } from '../utils/child-process';
 
+const gitKdoUserName = 'Keyman Developer Online';
+const gitKdoEmail = 'kdo@example.com';
+
 @Injectable()
 export class GitService {
   private git: simplegit.SimpleGit;
@@ -34,8 +37,8 @@ export class GitService {
 
   private addDefaultConfig(): Observable<void> {
     // Set default values
-    return from(this.git.addConfig('user.name', 'Keyman Developer Online')).pipe(
-      switchMap(() => from(this.git.addConfig('user.email', 'kdo@example.com'))),
+    return from(this.git.addConfig('user.name', gitKdoUserName)).pipe(
+      switchMap(() => from(this.git.addConfig('user.email', gitKdoEmail))),
       switchMap(() => from(this.git.addConfig('commit.gpgSign', 'false'))),
       map(() => { return; }),
     );
@@ -87,7 +90,6 @@ export class GitService {
       options.push(`--origin=${remoteName}`);
     }
 
-    debug(`GitService.clone: cloning ${remoteUrl} into ${localPath} with ${options}`);
     const parentDir = path.dirname(localPath);
     return mkdir(parentDir, { recursive: true }).pipe(
       switchMap(() => from(this.git.cwd(parentDir))),
@@ -192,19 +194,13 @@ export class GitService {
     branch: string,
     token: string,
   ): Observable<void> {
-    debug(`gitservice.push #1: repoDir=${repoDir}, remote=${remote}, branch=${branch}`);
     // It looks like simplegit has a bug that doesn't allow to specify the extraheader with the
     // raw method (https://github.com/steveukx/git-js/issues/424).
     // Directly executing git works...
     return exec(`git -c http.extraheader="Authorization: ${token}" push ${remote} ${branch}`, {
       cwd: repoDir,
     }).pipe(
-      tap(val => debug(`gitservice.push #2 returned ${val}`)),
-      catchError(err => {
-        debug(`gitservice.push #3: got error:`);
-        debug(err);
-        return of(0);
-      }),
+      catchError(err => of(0)),
       map(() => {
         return;
       }),
