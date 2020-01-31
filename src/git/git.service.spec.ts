@@ -655,4 +655,70 @@ describe('GitService', () => {
       expect(message).toMatch(/Imported from deadbeef/);
     });
   });
+
+  describe('readLastNote', () => {
+    it('returns empty if no notes', async () => {
+      // Setup
+      expect.assertions(2);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      await createInitialCommit(sut, repoDir).toPromise();
+
+      // Execute
+      const noteInfo = await sut.readLastNote(repoDir).toPromise();
+
+      // Verify
+      expect(noteInfo.commitSha).toBe('');
+      expect(noteInfo.message).toBe('');
+    });
+
+    it('returns note of HEAD', async () => {
+      // Setup
+      expect.assertions(2);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      const commit = await createInitialCommit(sut, repoDir).toPromise();
+      await sut.createNote(repoDir, 'HEAD', 'Imported from deadbeef').toPromise();
+
+      // Execute
+      const noteInfo = await sut.readLastNote(repoDir).toPromise();
+
+      // Verify
+      expect(noteInfo.commitSha).toMatch(commit.commit.match(/[0-9a-f]+$/)[0]);
+      expect(noteInfo.message).toBe('Imported from deadbeef');
+    });
+
+    it('returns latest note of several', async () => {
+      // Setup
+      expect.assertions(2);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      await createInitialCommit(sut, repoDir).toPromise();
+      await sut.createNote(repoDir, 'HEAD', 'Imported from deadbeef').toPromise();
+      const commit = await addCommit(sut, repoDir, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit').toPromise();
+      await sut.createNote(repoDir, 'HEAD', 'Other import').toPromise();
+
+      // Execute
+      const noteInfo = await sut.readLastNote(repoDir).toPromise();
+
+      // Verify
+      expect(noteInfo.commitSha).toMatch(commit.commit.match(/[0-9a-f]+$/)[0]);
+      expect(noteInfo.message).toBe('Other import');
+    });
+
+    it('returns latest note if not HEAD', async () => {
+      // Setup
+      expect.assertions(2);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      await createInitialCommit(sut, repoDir).toPromise();
+      await sut.createNote(repoDir, 'HEAD', 'Imported from deadbeef').toPromise();
+      const commit = await addCommit(sut, repoDir, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit').toPromise();
+      await sut.createNote(repoDir, 'HEAD', 'Other import').toPromise();
+      await addCommit(sut, repoDir, path.join(repoDir, 'somefile2.txt'), 'Additional text', 'third commit').toPromise();
+
+      // Execute
+      const noteInfo = await sut.readLastNote(repoDir).toPromise();
+
+      // Verify
+      expect(noteInfo.commitSha).toMatch(commit.commit.match(/[0-9a-f]+$/)[0]);
+      expect(noteInfo.message).toBe('Other import');
+    });
+  });
 });
