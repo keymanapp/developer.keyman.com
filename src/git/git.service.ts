@@ -282,4 +282,21 @@ export class GitService {
       map(() => { return; }),
     );
   }
+
+  public readLastNote(
+    repoDir: string,
+  ): Observable<{ commitSha: string, message: string }> {
+    return this.log(repoDir, ['--notes=kdo', `--pretty=format: '%H %N'`]).pipe(
+      map(list => list.latest),
+      map(logLine => logLine.hash),
+      map(s => {
+        const result = s.match(/'([0-9a-f]+) ([^\n]+)\n'/);
+        if (result) {
+          return { commitSha: result[1], message: result[2] };
+        } else {
+          return { commitSha: '', message: '' };
+        }
+      }),
+    );
+  }
 }
