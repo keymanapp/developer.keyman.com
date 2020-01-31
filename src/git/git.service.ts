@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Observable, from, throwError, of } from 'rxjs';
-import { map, flatMap, takeLast, switchMap, mapTo, tap, catchError } from 'rxjs/operators';
+import { map, flatMap, takeLast, switchMap, mapTo, catchError } from 'rxjs/operators';
 import * as simplegit from 'simple-git/promise';
 import { CommitSummary, FetchResult, PullResult, Options } from 'simple-git/promise';
 import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typings/response';
