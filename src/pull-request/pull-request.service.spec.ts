@@ -66,10 +66,29 @@ describe('PullRequestService', () => {
   describe('extractPatch', () => {
     it('can extract patches for all commits', async () => {
       // Execute
-      const patches = await sut.extractPatches(singleKeyboardRepo).toPromise();
+      expect.assertions(1);
+      const [, patches] = await sut.extractPatches(singleKeyboardRepo).toPromise();
 
       // Verify
       expect(patches.length).toEqual(2);
+    });
+
+    it('can extract new patches since last import', async () => {
+      // Setup
+      expect.assertions(3);
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      const filePath1 = path.join(singleKeyboardRepo, 'somefile1.txt');
+      fs.appendFileSync(filePath1, `${os.EOL}Text for the third commit`);
+      await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
+      const thirdCommit = await gitService.commit(singleKeyboardRepo, 'Third commit').toPromise();
+
+      // Execute
+      const [commit, patches] = await sut.extractPatches(singleKeyboardRepo).toPromise();
+
+      // Verify
+      expect(patches.length).toEqual(1);
+      expect(patches[0]).toBe(path.join(singleKeyboardRepo, '0001-Third-commit.patch'));
+      expect(commit).toMatch(new RegExp(`^${thirdCommit.commit}`));
     });
   });
 
@@ -414,7 +433,7 @@ rename to release/m/myKeyboard/this/is/a/long/path/somefile3.txt
   describe('importPatches', () => {
     it('imports patches', done => {
       // Setup
-      expect.assertions(4);
+      expect.assertions(5);
       const patchFile1 = '0001-Initial-commit.patch';
       const patchFile1FullPath = path.join(keyboardsRepo, patchFile1);
       fs.appendFileSync(
@@ -479,24 +498,26 @@ index 0000000..4d3b8c1
       );
 
       // Execute/Verify
-      sut.importPatch(keyboardsRepo, of(patchFile1, patchFile2)).subscribe({
-        complete: () => {
+      sut.importPatch(keyboardsRepo, of(patchFile1, patchFile2))
+        .subscribe(async (commit: string) => {
           const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
           expect(fs.existsSync(firstFile)).toBe(true);
           expect(fs.readFileSync(firstFile).toString()).toEqual(`some text${os.EOL}some more text${os.EOL}`);
           const secondFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile2.txt');
           expect(fs.existsSync(secondFile)).toBe(true);
           expect(fs.readFileSync(secondFile).toString()).toEqual(`other text${os.EOL}`);
+          const logs = await gitService.log(keyboardsRepo, { '-1': null }).toPromise();
+          expect(commit).toBe(logs.latest.hash);
           done();
         },
-      });
+      );
     });
   });
 
   describe('transferChanges', () => {
     it('applies the changes to keyboards repo', async () => {
       // Execute
-      expect.assertions(4);
+      expect.assertions(6);
       await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
 
       // Verify
@@ -506,6 +527,69 @@ index 0000000..4d3b8c1
       const secondFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile2.txt');
       expect(fs.existsSync(secondFile)).toBe(true);
       expect(fs.readFileSync(secondFile).toString()).toEqual('other text');
+
+      const singleKbNote = await gitService.readLastNote(singleKeyboardRepo).toPromise();
+      const keyboardsNote = await gitService.readLastNote(keyboardsRepo).toPromise();
+      expect(singleKbNote.message).toBe(`KDO exported to ${keyboardsNote.commitSha}`);
+      expect(keyboardsNote.message).toBe(`KDO imported from ${singleKbNote.commitSha}`);
+    });
+
+    it('succeeds when there are no new changes', async () => {
+      expect.assertions(1);
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+
+      // Execute
+      const result = await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+
+      // Verify
+      expect(result).toBe(null);
+    });
+
+    it('throws an error when it encounters force-pushes on single kb repo', async () => {
+      // Setup
+      expect.assertions(1);
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      const logs = await gitService.log(singleKeyboardRepo, { '-1': null }).toPromise();
+      const commitOfFirstTransfer = logs.latest.hash;
+
+      // Add third commit
+      const filePath1 = path.join(singleKeyboardRepo, 'somefile1.txt');
+      fs.appendFileSync(filePath1, `${os.EOL}Text for the third commit`);
+      await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
+      await gitService.commit(singleKeyboardRepo, 'Third commit').toPromise();
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+
+      // Reset singleKeyboardRepo to HEAD^ and add new third commit
+      await gitService.reset(singleKeyboardRepo, commitOfFirstTransfer).toPromise();
+      fs.appendFileSync(filePath1, `${os.EOL}Text for the new third commit`);
+      await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
+      await gitService.commit(singleKeyboardRepo, 'New third commit').toPromise();
+
+      // Execute/Verify
+      try {
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      } catch (e) {
+        expect(e.message).toMatch(/Non-linear history. Force-push is not allowed./);
+      }
+    });
+
+    it('throws an error when it encounters new changes on keyboards repo', async () => {
+      // Setup
+      expect.assertions(1);
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+
+      // Add third commit on keyboardsRepo
+      const filePath1 = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
+      fs.appendFileSync(filePath1, `${os.EOL}Text for the third commit`);
+      await gitService.addFile(keyboardsRepo, filePath1).toPromise();
+      await gitService.commit(keyboardsRepo, 'Third commit').toPromise();
+
+      // Execute/Verify
+      try {
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      } catch (e) {
+        expect(e.message).toMatch(/Keyboards repo has new changes. This is not allowed./);
+      }
     });
   });
 });
