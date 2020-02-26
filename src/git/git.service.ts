@@ -90,12 +90,16 @@ export class GitService {
       options.push(`--origin=${remoteName}`);
     }
 
+    const notesRef = remoteName ? `remote.${remoteName}.fetch` : 'remote.origin.fetch';
+
     const parentDir = path.dirname(localPath);
     return mkdir(parentDir, { recursive: true }).pipe(
       switchMap(() => from(this.git.cwd(parentDir))),
       switchMap(() => from(this.git.clone(remoteUrl, localPath, options))),
       switchMap(() => from(this.git.cwd(localPath))),
       switchMap(() => this.addDefaultConfig()),
+      switchMap(() => from(this.git.raw(['config', '--add', notesRef, '+refs/notes/*:refs/notes/*']))),
+      switchMap(() => from(this.git.fetch(remoteName ? remoteName : 'origin'))),
       mapTo(localPath),
     );
   }
