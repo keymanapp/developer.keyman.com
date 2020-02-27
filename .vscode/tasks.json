@@ -7,21 +7,21 @@
 		"type": "npm",
 		"script": "build",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "build:watch",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "start",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -29,7 +29,7 @@
 		"script": "build",
 		"path": "frontend/",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -37,21 +37,21 @@
 		"script": "build:watch",
 		"path": "frontend/",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "test:cov",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "test:e2e",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -59,7 +59,7 @@
 		"script": "test:e2e",
 		"path": "frontend/",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -67,7 +67,7 @@
 		"script": "test:coverage",
 		"path": "frontend/",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -75,35 +75,35 @@
 		"script": "test:watch",
 		"path": "frontend/",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "test:watch",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "lint",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "start:watch:dev",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "npm",
 		"script": "start:watch:debug",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -111,7 +111,7 @@
 		"script": "start",
 		"path": "frontend/",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -119,14 +119,14 @@
 		"script": "lint",
 		"path": "frontend/",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
 		"type": "gulp",
 		"task": "default",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
@@ -141,7 +141,7 @@
 		"type": "npm",
 		"script": "start:prod",
 		"problemMatcher": [
-			"$tslint5"
+			"$eslint-stylish"
 		]
 	},
 	{
