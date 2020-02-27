@@ -7,7 +7,7 @@ export class LoginDto {
   @IsString()
   readonly state: string;
 
-  constructor(codeParam: string = '', stateParam: string = '') {
+  constructor(codeParam = '', stateParam = '') {
     this.code = codeParam;
     this.state = stateParam;
   }

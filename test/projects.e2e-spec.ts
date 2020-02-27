@@ -148,7 +148,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
           token,
           configService.organizationName,
           configService.keyboardsRepoName,
-        pullRequest.number)),
+          pullRequest.number)),
       map(() => { return; }),
     );
   }

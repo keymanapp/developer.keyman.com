@@ -34,7 +34,7 @@ export class AngularModule implements OnModuleInit {
     };
   }
 
-  public async onModuleInit() {
+  public onModuleInit(): void {
     const httpAdapter = this.httpAdapterHost.httpAdapter;
     this.loader.register(httpAdapter, this.ngOptions);
   }

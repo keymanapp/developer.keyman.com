@@ -111,11 +111,11 @@ export class BackendProjectService {
     );
   }
 
-  public get branchName() {
+  public get branchName(): string {
     return 'master';
   }
 
-  public get localKeyboardsRepo() {
+  public get localKeyboardsRepo(): string {
     return path.join(this.config.workDirectory, this.config.keyboardsRepoName);
   }
 

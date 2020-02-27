@@ -489,8 +489,8 @@ index 0000000..4d3b8c1
           expect(fs.readFileSync(secondFile).toString()).toEqual(`other text${os.EOL}`);
           done();
         },
-      });
     });
+  });
   });
 
   describe('transferChanges', () => {

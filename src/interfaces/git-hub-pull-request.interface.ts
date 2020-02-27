@@ -1,5 +1,5 @@
 export interface GitHubPullRequest {
-  number: number;
+  'number': number;
   url: string;
   state: string;
 }

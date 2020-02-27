@@ -7,7 +7,7 @@ import { AppModule } from './app.module';
 import { AuthGuard } from './auth/auth.guard';
 import { ConfigService } from './config/config.service';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const config = new ConfigService();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
@@ -31,7 +31,7 @@ async function bootstrap() {
   app.use(
     express.urlencoded({ extended: false }),
     express.json({ type: () => true }),
-    new rateLimit({
+    rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 100, // limit each IP to 100 requests per windowMs
     }),
