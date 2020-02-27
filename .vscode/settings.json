@@ -1,10 +1,10 @@
 {
-  "jestrunner.configPath": "frontend/jest.config.js",
-  "cSpell.words": [
-    "middlewares",
-    "nestjs",
-    "prestart"
-],
-"files.autoSave": "onFocusChange",
-"debug.node.autoAttach": "off"
+    "cSpell.words": [
+        "middlewares",
+        "nestjs",
+        "prestart"
+    ],
+    "debug.node.autoAttach": "off",
+    "files.autoSave": "onFocusChange",
+    "jestrunner.configPath": "frontend/jest.config.js"
 }
