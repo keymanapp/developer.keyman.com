@@ -96,7 +96,7 @@ export class PullRequestService {
     );
   }
 
-}
+  }
 
 // git notes --ref=kdo add <commit> -m <message>
 // git log --notes=kdo --pretty=format:'%H %N'

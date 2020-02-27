@@ -10,7 +10,7 @@ import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface'
 import { PullRequestService } from '../pull-request/pull-request.service';
 import { GitService } from '../git/git.service';
 
-interface Project { name: string; repoUrl?: string; }
+interface Project { name: string; repoUrl?: string }
 
 const prTitle = 'Add ${repo} keyboard';
 const prDescription = 'Merge the single keyboard repo ${repo} into the keyboards repo. Courtesy of Keyman Developer Online.';
@@ -33,8 +33,8 @@ export class ProjectsController {
   public getRepos(
     @Session() session: any,
     @Headers('authorization') token: string,
-    page: number = 1,
-    pageSize: number = 100,
+    page = 1,
+    pageSize = 100,
   ): Observable<Project[]> {
     return this.githubService.getRepos(token, page, pageSize).pipe(
       filter(project => project.owner.login === session.login),

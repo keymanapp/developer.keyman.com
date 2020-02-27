@@ -37,13 +37,13 @@ const MemoryStore = memoryStoreModule(expressSession);
 export class AppModule implements NestModule {
   constructor(private readonly configService: ConfigService) { }
 
-  configure(consumer: MiddlewareConsumer) {
+  configure(consumer: MiddlewareConsumer): void {
     CookieParserMiddleware.configure(this.configService.sessionSecret);
     HelmetMiddleware.configure({
       contentSecurityPolicy: {
         directives: {
           // tslint:disable-next-line: quotemark
-          defaultSrc: ["'self'"],
+          defaultSrc: ['\'self\''],
         },
       },
       frameguard: {

@@ -13,7 +13,7 @@ describe('AccessToken', () => {
     const ghUser = new GitHubUserDto({
       login: 'foo',
       name: 'myname',
-      avatar_url: 'http://my.avatar.example.com',
+      'avatar_url': 'http://my.avatar.example.com',
     });
     expect(ghUser.login).toEqual('foo');
     expect(ghUser.name).toEqual('myname');

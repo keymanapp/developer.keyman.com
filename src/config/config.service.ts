@@ -114,7 +114,7 @@ export class ConfigService {
 
   // Name of the GitHub organization that hosts the keyboards repo. This property exists
   // so that we can change the name for e2e tests.
-  public get organizationName() {
+  public get organizationName(): string {
     return 'keymanapp';
   }
 

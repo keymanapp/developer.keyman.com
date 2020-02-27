@@ -35,7 +35,7 @@ describe('Observable child-process methods', () => {
       const file = path.join(tmpDir, 'exec-file2');
 
       // Execute
-      await exec(`echo "Hello world" > exec-file2`, { cwd: tmpDir }).toPromise();
+      await exec('echo "Hello world" > exec-file2', { cwd: tmpDir }).toPromise();
 
       // Verify
       expect(await fileExists(file).toPromise()).toBe(true);
