@@ -25,19 +25,19 @@ describe('UserService', () => {
   });
 
   it('should be created', () => {
-    const service: UserService = TestBed.get(UserService);
+    const service: UserService = TestBed.inject(UserService);
     expect(service).toBeTruthy();
   });
 
   it('isLoggedIn should return true if we have an accesstoken', () => {
-    const service: UserService = TestBed.get(UserService);
+    const service: UserService = TestBed.inject(UserService);
     service.accessToken = 'foo';
 
     expect(service.isLoggedIn()).toBeTruthy();
   });
 
   it('isLoggedIn should return false if we don\'t have an accesstoken', () => {
-    const service: UserService = TestBed.get(UserService);
+    const service: UserService = TestBed.inject(UserService);
     service.accessToken = null;
 
     expect(service.isLoggedIn()).toBeFalsy();

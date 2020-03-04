@@ -27,7 +27,7 @@ describe('ProjectsService', () => {
   });
 
   it('should be created', () => {
-    const sut = TestBed.get(ProjectsService);
+    const sut = TestBed.inject(ProjectsService);
     expect(sut).toBeTruthy();
   });
 
