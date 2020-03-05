@@ -37,7 +37,7 @@ describe('ErrorHelper', () => {
       const navigateSpy = jest.spyOn(router, 'navigate');
 
       const sut = new ErrorHelper(user, router);
-      const logSpy = jest.spyOn(sut, 'log').mockImplementation(() => {});
+      const logSpy = jest.spyOn(sut, 'log').mockImplementation(() => { /* do nothing */ });
       ngZone.run(() => {
         expect(
           sut
@@ -60,7 +60,7 @@ describe('ErrorHelper', () => {
       const navigateSpy = jest.spyOn(router, 'navigate');
 
       const sut = new ErrorHelper(user, router);
-      const logSpy = jest.spyOn(sut, 'log').mockImplementation(() => {});
+      const logSpy = jest.spyOn(sut, 'log').mockImplementation(() => { /* do nothing */ });
       ngZone.run(() => {
         expect(
           sut
