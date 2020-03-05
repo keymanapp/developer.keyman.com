@@ -2,7 +2,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterModule } from '@angular/router';
-import { StorageServiceModule } from 'angular-webstorage-service';
+import { StorageServiceModule } from 'ngx-webstorage-service';
 
 import { ProjectsService } from './projects.service';
 import { Project } from '../model/project';
@@ -27,7 +27,7 @@ describe('ProjectsService', () => {
   });
 
   it('should be created', () => {
-    const sut = TestBed.get(ProjectsService);
+    const sut = TestBed.inject(ProjectsService);
     expect(sut).toBeTruthy();
   });
 

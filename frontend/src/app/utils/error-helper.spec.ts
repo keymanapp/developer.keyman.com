@@ -2,7 +2,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { NgZone } from '@angular/core';
 import { TestBed, inject } from '@angular/core/testing';
 import { Router, RouterModule } from '@angular/router';
-import { StorageServiceModule } from 'angular-webstorage-service';
+import { StorageServiceModule } from 'ngx-webstorage-service';
 import { EMPTY } from 'rxjs';
 import { User } from '../model/user';
 

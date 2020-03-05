@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@angular/core';
-import { SESSION_STORAGE, WebStorageService } from 'angular-webstorage-service';
+import { SESSION_STORAGE, WebStorageService } from 'ngx-webstorage-service';
 import { GitHubUser } from './git-hub-user';
 
 const AccessTokenKey = 'access_token';
