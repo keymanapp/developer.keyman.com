@@ -34,7 +34,7 @@ describe('AuthGuard', () => {
   it('should not activate if session has no login', () => {
     const mockRequest = jest.fn<any, any[]>(() => ({
       url: '/api/foo',
-      session: { login: undefined },
+      session: { login: null },
     }));
     const Mock = jest.fn<ExecutionContext, any[]>(() => ({
       getType: jest.fn(),
@@ -59,7 +59,7 @@ describe('AuthGuard', () => {
     'should activate if in auth module (%s) and no login', (url) => {
     const mockRequest = jest.fn<any, any[]>(() => ({
       url,
-      session: { login: undefined },
+      session: { login: null },
     }));
     const Mock = jest.fn<ExecutionContext, any[]>(() => ({
       getType: jest.fn(),

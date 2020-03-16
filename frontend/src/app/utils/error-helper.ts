@@ -10,6 +10,7 @@ export class ErrorHelper {
   constructor(private user: User, private router: Router) {}
 
   public log(message: any): void {
+    // tslint:disable-next-line: no-console
     console.log(message);
   }
 
@@ -22,7 +23,9 @@ export class ErrorHelper {
   public handleError<T>(operation = 'operation', result?: T) {
     return (error: any): Observable<T> => {
       // TODO: send the error to remote logging infrastructure
+      // tslint:disable-next-line: no-console
       console.error('got error:');
+      // tslint:disable-next-line: no-console
       console.error(error); // log to console instead
 
       if (error.status === 403) {

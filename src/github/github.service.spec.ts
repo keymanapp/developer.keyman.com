@@ -1,29 +1,29 @@
 import { HttpService } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AxiosResponse } from 'axios';
-import { of, throwError, Scheduler, VirtualTimeScheduler, pipe } from 'rxjs';
+import { of, throwError, Scheduler, VirtualTimeScheduler } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 import { ConfigModule } from '../config/config.module';
 import { GithubService } from './github.service';
 import { TokenService } from '../token/token.service';
-import { tap } from 'rxjs/operators';
 
 describe('GitHub Service', () => {
   const projectFromGitHub = {
     name: 'foo',
-    full_name: 'jdoe/foo',
+    'full_name': 'jdoe/foo',
     private: false,
     owner: {
       login: 'jdoe',
       type: 'User',
-      site_admin: false,
+      'site_admin': false,
     },
-    html_url: 'https://github.com/jdoe/foo',
+    'html_url': 'https://github.com/jdoe/foo',
     description: null,
     fork: false,
     url: 'https://api.github.com/repos/jdoe/foo',
     size: 11195,
-    default_branch: 'master',
+    'default_branch': 'master',
   };
   const resultSuccess: AxiosResponse = {
     data: '<html><body>Some text</body></html>',
@@ -44,7 +44,7 @@ describe('GitHub Service', () => {
   let spyHttpService: HttpService;
 
   beforeEach(async () => {
-    jest.setTimeout(10000 /*10s*/);
+    jest.setTimeout(10000 /* 10s */);
     jest.useFakeTimers();
     const testingModule: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule],
@@ -52,15 +52,15 @@ describe('GitHub Service', () => {
         GithubService,
         {
           provide: TokenService,
-          useFactory: () => ({
+          useFactory: (): any => ({
             createRandomString: jest.fn(() => '9876543210'),
           }),
         },
         {
           provide: HttpService,
-          useFactory: () => ({
-            get: jest.fn(() => true),
-            post: jest.fn(() => true),
+          useFactory: (): any => ({
+            get: jest.fn(() => of({})),
+            post: jest.fn(() => of({})),
           }),
         },
         {
@@ -75,23 +75,27 @@ describe('GitHub Service', () => {
   });
 
   it('should be defined', () => {
+    expect.assertions(1);
     expect(sut).toBeDefined();
   });
 
   describe('login', () => {
     it('should return url', async () => {
+      expect.assertions(1);
       await expect(sut.login({ state: '' }).toPromise()).resolves.toEqual({
         url:
-          `https://github.com/login/oauth/authorize?client_id=abcxyz&redirect_uri=` +
-          `http://localhost:3000/index.html&scope=repo read:user user:email&state=9876543210`,
+          'https://github.com/login/oauth/authorize?client_id=abcxyz&redirect_uri=' +
+          'http://localhost:3000/index.html&scope=repo read:user user:email&state=9876543210',
       });
     });
   });
 
   describe('getAccessToken', () => {
     it('should invoke get on HttpService', async () => {
-      await sut.getAccessToken('code987', '9876543210');
+      expect.assertions(1);
+      await sut.getAccessToken('code987', '9876543210').toPromise();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(spyHttpService.get)
         .toHaveBeenCalledWith(
           'https://github.com/login/oauth/access_token' +
@@ -103,6 +107,7 @@ describe('GitHub Service', () => {
 
   describe('logout', () => {
     it('returns URL of homepage', async () => {
+      expect.assertions(1);
       await expect(sut.logout().toPromise()).resolves.toEqual({
         url: 'http://localhost:3000/',
       });
@@ -111,8 +116,10 @@ describe('GitHub Service', () => {
 
   describe('getUserInformation', () => {
     it('should invoke GET on HttpService', async () => {
-      await sut.getUserInformation('12345');
+      expect.assertions(1);
+      await sut.getUserInformation('12345').toPromise();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(spyHttpService.get).toHaveBeenCalledWith(
         'https://api.github.com/user',
         { headers: { Authorization: '12345'} },
@@ -120,38 +127,44 @@ describe('GitHub Service', () => {
     });
 
     it('should return null when token is null', async () => {
-      const result = await sut.getUserInformation(null);
+      expect.assertions(1);
+      const result = await sut.getUserInformation(null).toPromise();
       expect(result).toBeNull();
     });
 
     it('should return null when token is empty', async () => {
-      const result = await sut.getUserInformation('');
+      expect.assertions(1);
+      const result = await sut.getUserInformation('').toPromise();
       expect(result).toBeNull();
     });
   });
 
   describe('getRepos', () => {
     it('should return null when token is null', async () => {
-      const result = await sut.getRepos(null, 1, 100);
+      expect.assertions(1);
+      const result = await sut.getRepos(null, 1, 100).toPromise();
       expect(result).toBeNull();
     });
 
     it('should return null when token is empty', async () => {
-      const result = await sut.getRepos('', 1, 100);
+      expect.assertions(1);
+      const result = await sut.getRepos('', 1, 100).toPromise();
       expect(result).toBeNull();
     });
 
     it('should invoke GET on HttpService', async () => {
+      expect.assertions(1);
       const result: AxiosResponse = {
-        data: {},
+        data: [],
         status: 200,
         statusText: '',
         headers: {},
         config: {},
       };
       jest.spyOn(spyHttpService, 'get').mockImplementationOnce(() => of(result));
-      await sut.getRepos('12345', 1, 100);
+      await sut.getRepos('12345', 1, 100).toPromise();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(spyHttpService.get).toHaveBeenCalledWith(
         'https://api.github.com/user/repos?type=public&sort=full_name&page=1&per_page=100',
         { headers: { Authorization: '12345' } },
@@ -159,6 +172,7 @@ describe('GitHub Service', () => {
     });
 
     it('should return GitHub projects - fits in one page', () => {
+      expect.assertions(1);
       const result: AxiosResponse = {
         data: [projectFromGitHub],
         status: 200,
@@ -212,10 +226,12 @@ describe('GitHub Service', () => {
         },
         complete: () => {
           expect(count).toEqual(2);
+          // eslint-disable-next-line @typescript-eslint/unbound-method
           expect(spyHttpService.get).toHaveBeenCalledWith(
             'https://api.github.com/user/repos?type=public&sort=full_name&page=1&per_page=100',
             { headers: { Authorization: 'token 12345' } },
           );
+          // eslint-disable-next-line @typescript-eslint/unbound-method
           expect(spyHttpService.get).toHaveBeenCalledWith(
             'https://api.github.com/user/repos?type=public&sort=full_name&page=2',
             { headers: { Authorization: 'token 12345' } },
@@ -257,6 +273,7 @@ describe('GitHub Service', () => {
 
       // Verify
       expect(gitHubProject.full_name).toEqual('jdoe/foo');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(spyHttpService.post).toHaveBeenCalledWith(
         'https://api.github.com/repos/upstreamUser/foo/forks',
         null,
@@ -275,9 +292,10 @@ describe('GitHub Service', () => {
         headers: {},
         config: {},
       };
+      const mock = jest.fn(() => of(result));
       jest
         .spyOn(spyHttpService, 'post')
-        .mockImplementationOnce(() => of(result));
+        .mockImplementationOnce(mock);
       jest
         .spyOn(spyHttpService, 'get')
         .mockImplementationOnce(() => of(resultSuccess));
@@ -289,7 +307,7 @@ describe('GitHub Service', () => {
 
       // Verify
       expect(gitHubProject.full_name).toEqual('jdoe/foo');
-      expect(spyHttpService.post).not.toHaveBeenCalled();
+      expect(mock).not.toHaveBeenCalled();
     });
   });
 
@@ -342,6 +360,7 @@ describe('GitHub Service', () => {
       await sut.waitForRepoToExist('owner', 'repo', 4).toPromise();
 
       // Verify
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(spyHttpService.get).toHaveBeenCalledTimes(4);
     });
 
@@ -359,6 +378,7 @@ describe('GitHub Service', () => {
       try {
         await sut.waitForRepoToExist('owner', 'repo', 3).toPromise();
       } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(spyHttpService.get).toHaveBeenCalledTimes(3);
       }
     });
@@ -378,6 +398,7 @@ describe('GitHub Service', () => {
       ).toPromise();
 
       // Verify
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(spyHttpService.get).toHaveBeenCalledTimes(2);
       expect(tapCalled).toBe(true);
     });
@@ -395,7 +416,7 @@ describe('GitHub Service', () => {
       const result: AxiosResponse = {
         data: {
           url: 'https://api.github.com/repos/keymanapp/keyboards/pulls/1347',
-          number: 1347,
+          'number': 1347,
           state: 'open',
           locked: true,
           title: 'the title of the PR',
@@ -420,6 +441,7 @@ describe('GitHub Service', () => {
         .toPromise();
 
       // Verify
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(spyHttpService.post).toHaveBeenCalledWith(
         'https://api.github.com/repos/keymanapp/keyboards/pulls',
         null,
@@ -435,7 +457,7 @@ describe('GitHub Service', () => {
       );
       expect(pullRequest).toEqual({
         url: 'https://api.github.com/repos/keymanapp/keyboards/pulls/1347',
-        number: 1347,
+        'number': 1347,
         state: 'open',
       });
     });

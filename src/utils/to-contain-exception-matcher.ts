@@ -6,6 +6,7 @@ export {};
 // https://stackoverflow.com/questions/43667085/extending-third-party-module-that-is-globally-exposed
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toContainException: (expected: R | any) => {};
@@ -17,7 +18,7 @@ function getStatus(obj: any): number {
   if (obj.getStatus) {
     return obj.getStatus();
   }
-  return undefined;
+  return null;
 }
 
 // this will extend the expect with a custom matcher
@@ -29,7 +30,7 @@ expect.extend({
 
     const not = success ? ' not' : '';
     return {
-      message: () =>
+      message: (): string =>
         `expected Exception ${received.name}${not} to be ${expected.name}` +
         '\n\n' +
         `Expected: ${this.utils.printExpected(expected.message)}, ` +

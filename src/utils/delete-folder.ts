@@ -1,7 +1,7 @@
 import fs = require('fs');
 import path = require('path');
 
-export function deleteFolderRecursive(folder: string) {
+export function deleteFolderRecursive(folder: string): void {
   if (fs.existsSync(folder)) {
     fs.readdirSync(folder).forEach(file => {
       const curPath = path.join(folder, file);

@@ -68,11 +68,11 @@ export class UserController {
 
   // Method used in tests to set the username in the session
   @Get('user/test/:username')
-  public async getUser(
+  public getUser(
     @Session() session: any,
     @Headers('authorization') token: string,
     @Param() params: any,
-  ): Promise<void> {
+  ): void {
     session.login = params.username;
   }
 }

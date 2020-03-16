@@ -26,6 +26,7 @@ export class GithubService {
     return `${this.config.redirectHost}${redirectUri}`;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public login(session: any): Observable<{ url: string }> {
     // session.state = this.tokenService.createRandomString(10);
     const state = this.tokenService.createRandomString(10);
@@ -86,7 +87,7 @@ export class GithubService {
     token: string,
   ): Observable<AxiosResponse<GitHubUser | string>> {
     if (token == null || token.length === 0) {
-      return null;
+      return of(null);
     }
     return this.httpService.get('https://api.github.com/user', {
       headers: { Authorization: token },
@@ -99,7 +100,7 @@ export class GithubService {
     pageSize: number,
   ): Observable<GitHubProject> {
     if (token == null || token.length === 0) {
-      return null;
+      return of(null);
     }
 
     const url = `https://api.github.com/user/repos?type=public&sort=full_name&page=${page}&per_page=${pageSize}`;
@@ -144,7 +145,7 @@ export class GithubService {
   public waitForRepoToExist(
     owner: string,
     repo: string,
-    timeoutSeconds: number = 300,
+    timeoutSeconds = 300,
   ): Observable<void> {
     let firstCheck = true;
     return interval(1000).pipe(
@@ -167,7 +168,7 @@ export class GithubService {
   public repoExists(owner: string, repo: string): Observable<boolean> {
     return this.httpService.get(`https://github.com/${owner}/${repo}`).pipe(
       mapTo(true),
-      catchError(err => of(false)),
+      catchError(() => of(false)),
     );
   }
 
@@ -178,13 +179,13 @@ export class GithubService {
     user: string,
   ): Observable<GitHubProject> {
     if (token == null || token.length === 0) {
-      return null;
+      return of(null);
     }
 
     return this.repoExists(user, repo).pipe(
       switchMap(exists => {
         if (exists) {
-          return of({ name: repo, full_name: `${user}/${repo}` });
+          return of({ name: repo, 'full_name': `${user}/${repo}` });
         }
 
         let project: GitHubProject = null;
@@ -198,7 +199,7 @@ export class GithubService {
             },
           )
           .pipe(
-            catchError(() => of({ data: null, full_name: 'error' })),
+            catchError(() => of({ data: null, 'full_name': 'error' })),
             switchMap(result => {
               project = result.data;
               return this.waitForRepoToExist(user, repo).pipe(
@@ -221,7 +222,7 @@ export class GithubService {
     description: string, // description of the PR
   ): Observable<GitHubPullRequest> {
     if (token == null || token.length === 0) {
-      return null;
+      return of(null);
     }
 
     return this.httpService
@@ -236,7 +237,7 @@ export class GithubService {
       })
       .pipe(
         map(result => ({
-          number: result.data.number,
+          'number': result.data.number,
           url: result.data.url,
           state: result.data.state,
         })),
@@ -250,7 +251,7 @@ export class GithubService {
     repoName: string, // name of the repo
   ): Observable<GitHubPullRequest> {
     if (token == null || token.length === 0) {
-      return null;
+      return of(null);
     }
 
     return this.httpService
@@ -274,7 +275,7 @@ export class GithubService {
     pullNumber: number, // PR#
   ): Observable<GitHubPullRequest> {
     if (token == null || token.length === 0) {
-      return null;
+      return of(null);
     }
 
     return this.httpService
@@ -286,7 +287,7 @@ export class GithubService {
       )
       .pipe(
         map(result => ({
-          number: result.data.number,
+          'number': result.data.number,
           url: result.data.url,
           state: result.data.state,
         })),

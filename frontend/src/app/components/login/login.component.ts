@@ -9,7 +9,9 @@ import { UserService } from '../../services/user.service';
 export class LoginComponent implements OnInit {
   constructor(private userService: UserService) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    // empty
+  }
 
   public login(): void {
     this.userService.login().subscribe(url => {

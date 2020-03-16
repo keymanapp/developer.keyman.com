@@ -8,7 +8,7 @@ import { NoopLoader } from './loaders/noop.loader';
 export const angularProviders: Provider[] = [
   {
     provide: AbstractLoader,
-    useFactory: (httpAdapterHost: HttpAdapterHost) => {
+    useFactory: (httpAdapterHost: HttpAdapterHost): any => {
       if (!httpAdapterHost) {
         return new NoopLoader();
       }

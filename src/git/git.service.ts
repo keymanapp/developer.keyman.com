@@ -46,7 +46,7 @@ export class GitService {
 
   public createRepo(
     repoPath: string,
-    bare: boolean = false,
+    bare = false,
   ): Observable<string> {
     return mkdir(repoPath).pipe(
       switchMap(() => from(this.git.cwd(repoPath))),
@@ -75,7 +75,7 @@ export class GitService {
   public clone(
     remoteUrl: string,
     localPath: string,
-    bare: boolean = false,
+    bare = false,
     remoteName?: string,
   ): Observable<string> {
     if (!path.isAbsolute(localPath)) {
@@ -208,7 +208,7 @@ export class GitService {
     return exec(`git -c http.extraheader="Authorization: ${token}" push ${remote} ${branch}`, {
       cwd: repoDir,
     }).pipe(
-      catchError(err => of(0)),
+      catchError(() => of(0)),
       map(() => {
         return;
       }),
@@ -294,17 +294,17 @@ export class GitService {
 
   public readLastNote(
     repoDir: string,
-  ): Observable<{ commitSha: string, message: string }> {
+  ): Observable<{ commitSha: string; message: string }> {
     return this.hasCommits(repoDir).pipe(
       switchMap(hasCommits => {
         if (!hasCommits) {
           return of({ commitSha: '', message: '' });
         }
-        return this.log(repoDir, ['--notes=kdo', `--pretty=format: '%H %N'`]).pipe(
+        return this.log(repoDir, ['--notes=kdo', '--pretty=format: \'%H %N\'']).pipe(
           map(list => list.latest),
           map(logLine => logLine.hash),
           map(s => {
-            const result = s.match(/'([0-9a-f]+) ([^\n]+)\n'/);
+            const result = /'([0-9a-f]+) ([^\n]+)\n'/.exec(s);
             if (result) {
               return { commitSha: result[1], message: result[2] };
             } else {

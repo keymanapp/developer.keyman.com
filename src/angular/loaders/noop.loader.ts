@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { AbstractHttpAdapter } from '@nestjs/core';
 import { AngularModuleOptions } from '../interfaces/angular-options.interface';
@@ -8,6 +9,5 @@ export class NoopLoader extends AbstractLoader {
   public register(
     httpAdapter: AbstractHttpAdapter,
     options: AngularModuleOptions,
-// tslint:disable-next-line: no-empty
-  ) {}
+  ): void { /* empty */ }
 }

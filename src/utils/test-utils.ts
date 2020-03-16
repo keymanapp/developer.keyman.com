@@ -1,4 +1,4 @@
-function evaluateCondition(condition) {
+function evaluateCondition(condition): any {
   return typeof condition === 'function' ? condition() : !!condition;
 }
 
@@ -6,7 +6,7 @@ function evaluateCondition(condition) {
 // adds a new (green-baring test) to make it explicit why the tests
 // are skipped (unfortunately Jest doesn't allow to specify a message
 // why a test is skipped).
-export function describeIf(name: string, condition: any, tests: any) {
+export function describeIf(name: string, condition: any, tests: any): void {
   if (evaluateCondition(condition)) {
     describe(name, tests);
   } else {
@@ -18,7 +18,7 @@ export function describeIf(name: string, condition: any, tests: any) {
 }
 
 // Skip this test if the condition is not met
-export function itIf(name: string, condition: any, test: any) {
+export function itIf(name: string, condition: any, test: any): void {
   if (evaluateCondition(condition)) {
     return it(name, test);
   } else {

@@ -3,7 +3,7 @@ import { TestBed, inject } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { RouterModule, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
-import { StorageServiceModule } from 'angular-webstorage-service';
+import { StorageServiceModule } from 'ngx-webstorage-service';
 
 import { UserService } from '../services/user.service';
 import { AuthGuard } from './auth.guard';

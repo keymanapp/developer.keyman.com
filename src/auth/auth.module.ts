@@ -13,7 +13,7 @@ import { GithubModule } from '../github/github.module';
 export class AuthModule {
   constructor(private readonly tokenService: TokenService) {}
 
-  configure(consumer: MiddlewareConsumer) {
+  configure(consumer: MiddlewareConsumer): void {
     CookieSessionMiddleware.configure({
       name: 'session',
       secret: this.tokenService.createRandomString(15),

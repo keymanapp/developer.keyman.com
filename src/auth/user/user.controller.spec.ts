@@ -66,11 +66,12 @@ describe('User Controller', () => {
 
   describe('getAccessToken', () => {
     it('should return access token', async () => {
+      expect.assertions(1);
       const loginDto = { code: 'code987', state: '9876543210' };
       const result: GitHubAccessToken = {
-        access_token: '12345',
+        'access_token': '12345',
         scope: 'repo,read:user,user:email',
-        token_type: 'bearer',
+        'token_type': 'bearer',
       };
       mockAdapter
         .onGet('https://github.com/login/oauth/access_token' +
@@ -83,6 +84,7 @@ describe('User Controller', () => {
     });
 
     it('should return error if wrong state', async () => {
+      expect.assertions(1);
       const loginDto = new LoginDto('code987', 'wrongstate');
       mockAdapter
         .onGet(
@@ -91,17 +93,20 @@ describe('User Controller', () => {
         )
         .reply(403, 'Forbidden');
 
-      await expect(
-        sut.getAccessToken(loginDto),
-      ).rejects.toContainException(
-        new ForbiddenException({
-          accessToken: '',
-          error: 'Request failed with status code 403',
-        }),
-      );
+      try {
+        await sut.getAccessToken(loginDto);
+      } catch (e) {
+        expect(e).toContainException(
+          new ForbiddenException({
+            accessToken: '',
+            error: 'Request failed with status code 403',
+          }),
+        );
+      }
     });
 
     it('should return error if wrong dto object', async () => {
+      expect.assertions(1);
       const loginDto = new LoginDto('', '9876543210');
       mockAdapter
         .onGet(
@@ -110,17 +115,20 @@ describe('User Controller', () => {
         )
         .reply(401, 'Unauthorized');
 
-      await expect(
-        sut.getAccessToken(loginDto),
-      ).rejects.toContainException(
-        new UnauthorizedException({
-          accessToken: '',
-          error: 'Request failed with status code 401',
-        }),
-      );
+      try {
+        await sut.getAccessToken(loginDto);
+      } catch (e) {
+        expect(e).toContainException(
+          new UnauthorizedException({
+            accessToken: '',
+            error: 'Request failed with status code 401',
+          }),
+        );
+      }
     });
 
     it('should return error if network not available', async () => {
+      expect.assertions(1);
       const loginDto = new LoginDto('code987', '9876543210');
       mockAdapter
         .onGet(
@@ -129,20 +137,23 @@ describe('User Controller', () => {
         )
         .networkError();
 
-      await expect(
-        sut.getAccessToken(loginDto),
-      ).rejects.toContainException(
-        new HttpException(
-          {
-            accessToken: '',
-            error: 'Network Error',
-          },
-          400,
-        ),
-      );
+      try {
+        await sut.getAccessToken(loginDto);
+      } catch (e) {
+        expect(e).toContainException(
+          new HttpException(
+            {
+              accessToken: '',
+              error: 'Network Error',
+            },
+            400,
+          ),
+        );
+      }
     });
 
     it('should return error when GitHub returns an error', async () => {
+      expect.assertions(1);
       const loginDto = { code: 'code987', state: '9876543210' };
       mockAdapter
         .onGet(
@@ -154,20 +165,23 @@ describe('User Controller', () => {
           'error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.',
         );
 
-      await expect(
-        sut.getAccessToken(loginDto),
-      ).rejects.toContainException(
-        new BadRequestException({
-          accessToken: '',
-          error:
-            'error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.',
-        }),
-      );
+      try {
+        await sut.getAccessToken(loginDto);
+      } catch (e) {
+        expect(e).toContainException(
+          new BadRequestException({
+            accessToken: '',
+            error:
+              'error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.',
+          }),
+        );
+      }
     });
   });
 
   describe('logout', () => {
     it('returns URL of homepage', async () => {
+      expect.assertions(1);
       await expect(sut.logout().toPromise()).resolves.toEqual({
         url: 'http://localhost:3000/',
       });
@@ -176,10 +190,11 @@ describe('User Controller', () => {
 
   describe('getUserInformation', () => {
     it('happy path', async () => {
+      expect.assertions(1);
       const userInfo = {
         login: 'johndoe',
         name: 'john doe',
-        avatar_url: 'example.com/myavatar',
+        'avatar_url': 'example.com/myavatar',
       };
       mockAdapter.onGet('https://api.github.com/user').reply(200, userInfo);
 
@@ -190,21 +205,24 @@ describe('User Controller', () => {
     });
 
     it('should return error when token is wrong', async () => {
+      expect.assertions(1);
       mockAdapter
         .onGet('https://api.github.com/user')
         .reply(401, 'invalid token');
 
       const session = { login: '' };
-      await expect(
-        sut.getUserInformation(session, 'token invalid'),
-      ).rejects.toContainException(
-        new UnauthorizedException({
-          login: '',
-          name: '',
-          avatarUrl: '',
-          error: 'Request failed with status code 401',
-        }),
-      );
+      try {
+        await sut.getUserInformation(session, 'token invalid');
+      } catch (e) {
+        expect(e).toContainException(
+          new UnauthorizedException({
+            login: '',
+            name: '',
+            avatarUrl: '',
+            error: 'Request failed with status code 401',
+          }),
+        );
+      }
     });
   });
 });

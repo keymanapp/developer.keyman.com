@@ -25,7 +25,7 @@ describe('GitService', () => {
     tmpDir = await mkdtemp(prefix).toPromise();
     sut = module.get<GitService>(GitService);
     git = simplegit();
-    jest.setTimeout(10000/*10s*/);
+    jest.setTimeout(10000/* 10s */);
   });
 
   afterEach(() => {
@@ -711,7 +711,7 @@ describe('GitService', () => {
       const noteInfo = await sut.readLastNote(repoDir).toPromise();
 
       // Verify
-      expect(noteInfo.commitSha).toMatch(commit.commit.match(/[0-9a-f]+$/)[0]);
+      expect(noteInfo.commitSha).toMatch(/[0-9a-f]+$/.exec(commit.commit)[0]);
       expect(noteInfo.message).toBe('Imported from deadbeef');
     });
 
@@ -728,7 +728,7 @@ describe('GitService', () => {
       const noteInfo = await sut.readLastNote(repoDir).toPromise();
 
       // Verify
-      expect(noteInfo.commitSha).toMatch(commit.commit.match(/[0-9a-f]+$/)[0]);
+      expect(noteInfo.commitSha).toMatch(/[0-9a-f]+$/.exec(commit.commit)[0]);
       expect(noteInfo.message).toBe('Other import');
     });
 
@@ -746,7 +746,7 @@ describe('GitService', () => {
       const noteInfo = await sut.readLastNote(repoDir).toPromise();
 
       // Verify
-      expect(noteInfo.commitSha).toMatch(commit.commit.match(/[0-9a-f]+$/)[0]);
+      expect(noteInfo.commitSha).toMatch(/[0-9a-f]+$/.exec(commit.commit)[0]);
       expect(noteInfo.message).toBe('Other import');
     });
   });

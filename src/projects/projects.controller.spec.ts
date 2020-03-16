@@ -24,7 +24,7 @@ describe('Projects Controller', () => {
   let config: ConfigService;
 
   beforeEach(async () => {
-    jest.setTimeout(10000 /*10s*/);
+    jest.setTimeout(10000 /* 10s */);
     const module: TestingModule = await Test.createTestingModule({
       imports: [HttpModule, ConfigModule, BackendProjectModule],
       controllers: [ProjectsController],
@@ -32,7 +32,7 @@ describe('Projects Controller', () => {
         TokenService,
         {
           provide: GithubService,
-          useFactory: () => ({
+          useFactory: (): any => ({
             getRepos: jest.fn(() => true),
             forkRepo: jest.fn(() => of({ name: 'foo' })),
             createPullRequest: jest.fn(() => of()),
@@ -281,10 +281,10 @@ describe('Projects Controller', () => {
       // Setup
       expect.assertions(4);
       const session = { login: 'jdoe' };
-      jest
+      const mockImplementation = jest
         .spyOn(githubService, 'createPullRequest')
         .mockImplementationOnce(() => of({
-          number: 42,
+          'number': 42,
           url:
             'https://api.github.com/repos/keymanapp/keyboards/pulls/42',
           state: 'open',
@@ -315,7 +315,7 @@ describe('Projects Controller', () => {
       expect(gitHubCommit.latest.hash).toEqual(expectedCommit.latest.hash);
 
       // should have created PR
-      expect(githubService.createPullRequest).toHaveBeenCalledWith(
+      expect(mockImplementation).toHaveBeenCalledWith(
         'token 12345',
         'keymanapp',
         'keyboards',

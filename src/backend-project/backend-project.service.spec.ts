@@ -22,7 +22,7 @@ describe('BackendProjectService', () => {
   let remoteRepo: string;
 
   beforeEach(async () => {
-    jest.setTimeout(10000/*10s*/);
+    jest.setTimeout(10000/* 10s */);
     const module: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule],
       providers: [
