@@ -39,7 +39,7 @@ export class PullRequestService {
     //     - Error: one changed, the other force-pushed. Can't deal with this automatically
 
     let exportedCommitInSingleKbRepo: string;
-    let singleKbNoteInfo: { commitSha: string, message: string };
+    let singleKbNoteInfo: { commitSha: string; message: string };
     let singleKbHead: string;
     let keyboardsHead: string;
 
@@ -52,8 +52,8 @@ export class PullRequestService {
       switchMap(() => this.gitService.readLastNote(keyboardsRepoPath)),
       map(keyboardsNoteInfo => {
         if (
-          (!singleKbNoteInfo.message.match(new RegExp(`KDO.+${keyboardsNoteInfo.commitSha}$`)) ||
-            !keyboardsNoteInfo.message.match(new RegExp(`KDO.+${singleKbNoteInfo.commitSha}$`))) &&
+          (new RegExp(`KDO.+${keyboardsNoteInfo.commitSha}$`).exec(singleKbNoteInfo.message) == null ||
+            new RegExp(`KDO.+${singleKbNoteInfo.commitSha}$`).exec(keyboardsNoteInfo.message) == null) &&
           singleKbNoteInfo.message !== '' && keyboardsNoteInfo.message !== ''
         ) {
           throw new Error('Non-linear history. Force-push is not allowed.');

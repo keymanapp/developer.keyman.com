@@ -499,16 +499,17 @@ index 0000000..4d3b8c1
 
       // Execute/Verify
       sut.importPatch(keyboardsRepo, of(patchFile1, patchFile2))
-        .subscribe(async (commit: string) => {
+        .subscribe((commit: string) => {
           const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
           expect(fs.existsSync(firstFile)).toBe(true);
           expect(fs.readFileSync(firstFile).toString()).toEqual(`some text${os.EOL}some more text${os.EOL}`);
           const secondFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile2.txt');
           expect(fs.existsSync(secondFile)).toBe(true);
           expect(fs.readFileSync(secondFile).toString()).toEqual(`other text${os.EOL}`);
-          const logs = await gitService.log(keyboardsRepo, { '-1': null }).toPromise();
-          expect(commit).toBe(logs.latest.hash);
-          done();
+          gitService.log(keyboardsRepo, { '-1': null }).subscribe(logs => {
+            expect(commit).toBe(logs.latest.hash);
+            done();
+          });
         },
       );
     });
