@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Observable, from } from 'rxjs';
-import { map, flatMap, switchMap } from 'rxjs/operators';
+import { Observable, from, of, throwError } from 'rxjs';
+import { map, flatMap, switchMap, tap, catchError } from 'rxjs/operators';
 
 import path = require('path');
 
@@ -19,22 +19,97 @@ export class PullRequestService {
   ) {}
 
   public transferChanges(singleKbRepoPath: string, keyboardsRepoPath: string): Observable<void> {
-    return this.extractPatches(singleKbRepoPath).pipe(
-      switchMap(patchFiles => from(patchFiles)),
+    // Currently we only support importing changes from single-keyboard repo into keyboards
+    // repo, not the other way round. We don't support non-linear history (force-push) either.
+    // If we ever want to deal with force-pushes on either single-keyboard (s) or keyboards (k)
+    // repos:
+    // - read last note on s and k
+    // - if they reference each other:
+    //   - if note is on HEAD on either s or k:
+    //     - all good. Import changes from the repo that doesn't have note on HEAD
+    //   - else:
+    //     - Error: both changed. Can't deal with this automatically.
+    // - else (they don't reference each other):
+    //   - if note is on HEAD on either s or k:
+    //     - the other repo had a force-push. If the force-push happened on s:
+    //       - revert all commits on k between note-1..HEAD
+    //     - else (force-push on k):
+    //       - reset s to note-1
+    //   - else (note is not on HEAD on both s and k):
+    //     - Error: one changed, the other force-pushed. Can't deal with this automatically
+
+    let exportedCommitInSingleKbRepo: string;
+    let singleKbNoteInfo: { commitSha: string; message: string };
+    let singleKbHead: string;
+    let keyboardsHead: string;
+
+    return this.gitService.readLastNote(singleKbRepoPath).pipe(
+      tap(noteInfo => singleKbNoteInfo = noteInfo),
+      switchMap(() => this.gitService.getHeadCommit(singleKbRepoPath)),
+      tap(head => singleKbHead = head),
+      switchMap(() => this.gitService.getHeadCommit(keyboardsRepoPath)),
+      tap(head => keyboardsHead = head),
+      switchMap(() => this.gitService.readLastNote(keyboardsRepoPath)),
+      map(keyboardsNoteInfo => {
+        if (
+          (new RegExp(`KDO.+${keyboardsNoteInfo.commitSha}$`).exec(singleKbNoteInfo.message) == null ||
+            new RegExp(`KDO.+${singleKbNoteInfo.commitSha}$`).exec(keyboardsNoteInfo.message) == null) &&
+          singleKbNoteInfo.message !== '' && keyboardsNoteInfo.message !== ''
+        ) {
+          throw new Error('Non-linear history. Force-push is not allowed.');
+        }
+
+        if (keyboardsHead !== keyboardsNoteInfo.commitSha && keyboardsNoteInfo.commitSha !== '') {
+          throw new Error('Keyboards repo has new changes. This is not allowed.');
+        }
+
+        if (singleKbHead === singleKbNoteInfo.commitSha) {
+          throw new Error('no new changes');
+        }
+      }),
+    // NOTE: I don't understand why I need this pipe() here. But without it it shows an error,
+    // and I can't figure out what's wrong.
+    ).pipe(
+      switchMap(() => this.extractPatches(singleKbRepoPath)),
+      switchMap(([sha, patchFiles]) => {
+        exportedCommitInSingleKbRepo = sha;
+        return from(patchFiles);
+      }),
       map(patchFile => this.convertPatch(patchFile, path.basename(singleKbRepoPath))),
       flatMap(patchFile => this.importPatch(keyboardsRepoPath, patchFile)),
+      switchMap(importedCommitInKeyboardsRepo => this.createNotes(
+        singleKbRepoPath,
+        keyboardsRepoPath,
+        exportedCommitInSingleKbRepo,
+        importedCommitInKeyboardsRepo),
+      ),
+      catchError(err => {
+        if (!err.message.match(/no new changes/)) {
+          return throwError(new Error(err));
+        }
+        return of(null);
+      }),
     );
   }
 
-  public extractPatches(localRepo: string): Observable<string[]> {
-    return this.gitService.export(localRepo, 'HEAD', '--root');
+  public extractPatches(localRepo: string): Observable<[string, string[]]> {
+    return this.gitService.readLastNote(localRepo).pipe(
+      switchMap(obj => {
+        const commit = obj.commitSha === '' ? 'HEAD' : `${obj.commitSha}..HEAD`;
+        const rangeOpt = obj.commitSha === '' ? '--root' : null;
+        return this.gitService.export(localRepo, commit, rangeOpt);
+      }),
+    );
   }
 
   public importPatch(
     localRepo: string,
     patchFiles: Observable<string>,
-  ): Observable<void> {
-    return this.gitService.import(localRepo, patchFiles);
+  ): Observable<string> {
+    return this.gitService.import(localRepo, patchFiles).pipe(
+      switchMap(() => this.gitService.log(localRepo, { '-1': null })),
+      map((logs) => logs.latest.hash),
+    );
   }
 
   public convertPatch(
@@ -96,12 +171,23 @@ export class PullRequestService {
     );
   }
 
+  private createNotes(
+    singleKbRepoPath: string,
+    keyboardsRepoPath: string,
+    commitOnSingleKbRepo: string,
+    commitOnKeyboardsRepo: string,
+  ): Observable<void> {
+    return this.gitService.createNote(
+      singleKbRepoPath,
+      commitOnSingleKbRepo,
+      `KDO exported to ${commitOnKeyboardsRepo}`)
+      .pipe(
+        switchMap(() => this.gitService.createNote(
+          keyboardsRepoPath,
+          commitOnKeyboardsRepo,
+          `KDO imported from ${commitOnSingleKbRepo}`),
+        ),
+      );
   }
 
-// git notes --ref=kdo add <commit> -m <message>
-// git log --notes=kdo --pretty=format:'%H %N'
-// in singlekb: find first commit with note (if any). Extract keyboards commit and reset
-// keyboards repo to that.
-// Message text:
-// in keyboards: KDO imported from %H
-// in singlekb:  KDO exported to %H
+}

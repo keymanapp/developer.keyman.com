@@ -175,7 +175,7 @@ describe('GitService', () => {
 
   describe('export and import', () => {
     it('can export and import patch', async () => {
-      expect.assertions(4);
+      expect.assertions(5);
 
       // Setup 1+2
       let repoDir: string;
@@ -198,9 +198,11 @@ describe('GitService', () => {
       expect(log.total).toEqual(1);
 
       // Execute 1
-      const patches = await sut.export(repoDir, 'HEAD', '-1').toPromise();
+      const [commit, patches] = await sut.export(repoDir, 'HEAD', '-1').toPromise();
 
       // Verify 1
+      log = await sut.log(repoDir).toPromise();
+      expect(commit).toEqual(log.latest.hash);
       expect(patches.length).toEqual(1);
       expect(patches[0]).toEqual(path.join(repoDir, '0001-second-commit.patch'));
 
@@ -220,7 +222,7 @@ describe('GitService', () => {
       await addCommit(sut, repoDir, path.join(repoDir, 'somefile1.txt'), 'Additional text', 'second commit').toPromise();
 
       // Execute 1
-      const patches = await sut.export(repoDir, 'HEAD', '--root').toPromise();
+      const [, patches] = await sut.export(repoDir, 'HEAD', '--root').toPromise();
 
       // Verify 1
       expect(patches.length).toEqual(2);
@@ -259,7 +261,7 @@ describe('GitService', () => {
       ).toPromise();
 
       // Execute
-      const patches = await sut.export(repoDir, 'HEAD^^..HEAD').toPromise();
+      const [, patches] = await sut.export(repoDir, 'HEAD^^..HEAD').toPromise();
 
       // Verify
       expect(patches.length).toEqual(2);
@@ -284,7 +286,7 @@ describe('GitService', () => {
         'Additional text',
         'second commit',
       ).toPromise();
-      const patches = await sut.export(repoDir, 'HEAD', '--root').toPromise();
+      const [, patches] = await sut.export(repoDir, 'HEAD', '--root').toPromise();
       const secondRepoDir = await sut.createRepo(path.join(tmpDir, 'secondRepo')).toPromise();
 
       // Execute
@@ -654,6 +656,21 @@ describe('GitService', () => {
       ).toPromise();
       expect(message).toMatch(/Imported from deadbeef/);
     });
+
+    it('does fail if we create same note twice', async () => {
+      // Setup
+      expect.assertions(1);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      await createInitialCommit(sut, repoDir).toPromise();
+      await sut.createNote(repoDir, 'HEAD', 'Imported from deadbeef').toPromise();
+
+      // Execute/Verify
+      try {
+        await sut.createNote(repoDir, 'HEAD', 'Second note').toPromise();
+      } catch (e) {
+        expect(e.message).toMatch(/error: Cannot add notes. Found existing notes for object [0-9a-f]+. Use '-f' to overwrite existing notes/);
+      }
+    });
   });
 
   describe('readLastNote', () => {
@@ -662,6 +679,18 @@ describe('GitService', () => {
       expect.assertions(2);
       const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
       await createInitialCommit(sut, repoDir).toPromise();
+
+      // Execute
+      const noteInfo = await sut.readLastNote(repoDir).toPromise();
+
+      // Verify
+      expect(noteInfo.commitSha).toBe('');
+      expect(noteInfo.message).toBe('');
+    });
+
+    it('returns empty if no commits in repo', async () => {
+      // Setup
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
 
       // Execute
       const noteInfo = await sut.readLastNote(repoDir).toPromise();
@@ -719,6 +748,57 @@ describe('GitService', () => {
       // Verify
       expect(noteInfo.commitSha).toMatch(/[0-9a-f]+$/.exec(commit.commit)[0]);
       expect(noteInfo.message).toBe('Other import');
+    });
+  });
+
+  describe('hasCommits', () => {
+    it('returns true if there are commits', async () => {
+      // Setup
+      expect.assertions(1);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      await createInitialCommit(sut, repoDir).toPromise();
+
+      // Execute/Verify
+      expect(await sut.hasCommits(repoDir).toPromise()).toBe(true);
+    });
+
+    it('returns false if there are no commits', async () => {
+      // Setup
+      expect.assertions(1);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+
+      // Execute/Verify
+      expect(await sut.hasCommits(repoDir).toPromise()).toBe(false);
+    });
+  });
+
+  describe('getHeadCommit', () => {
+    it('returns commit sha of HEAD', async () => {
+      // Setup
+      expect.assertions(1);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+      const commitInfo = await createInitialCommit(sut, repoDir).toPromise();
+      // commitInfo.commit is something like '(root-commit) deadbeef'
+      const regex = new RegExp(/\(root-commit\) ([0-9a-f]+)/);
+      const expectedCommit = regex.exec(commitInfo.commit)[1];
+
+      // Execute
+      const head = await sut.getHeadCommit(repoDir).toPromise();
+
+      // Verify
+      expect(head).toMatch(new RegExp(`^${expectedCommit}.+`));
+    });
+
+    it('does not fail on empty repo', async () => {
+      // Setup
+      expect.assertions(1);
+      const repoDir = await sut.createRepo(path.join(tmpDir, 'mytest')).toPromise();
+
+      // Execute
+      const head = await sut.getHeadCommit(repoDir).toPromise();
+
+      // Verify
+      expect(head).toBe('');
     });
   });
 });

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Observable, from, throwError, of } from 'rxjs';
-import { map, flatMap, takeLast, switchMap, mapTo, catchError } from 'rxjs/operators';
+import { map, flatMap, takeLast, switchMap, mapTo, catchError, tap } from 'rxjs/operators';
 import * as simplegit from 'simple-git/promise';
 import { CommitSummary, FetchResult, PullResult, Options } from 'simple-git/promise';
 import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typings/response';
@@ -90,12 +90,16 @@ export class GitService {
       options.push(`--origin=${remoteName}`);
     }
 
+    const notesRef = remoteName ? `remote.${remoteName}.fetch` : 'remote.origin.fetch';
+
     const parentDir = path.dirname(localPath);
     return mkdir(parentDir, { recursive: true }).pipe(
       switchMap(() => from(this.git.cwd(parentDir))),
       switchMap(() => from(this.git.clone(remoteUrl, localPath, options))),
       switchMap(() => from(this.git.cwd(localPath))),
       switchMap(() => this.addDefaultConfig()),
+      switchMap(() => from(this.git.raw(['config', '--add', notesRef, '+refs/notes/*:refs/notes/*']))),
+      switchMap(() => from(this.git.fetch(remoteName ? remoteName : 'origin'))),
       mapTo(localPath),
     );
   }
@@ -104,14 +108,17 @@ export class GitService {
     repoDir: string,
     commit: string,
     rangeOption: string = null,
-  ): Observable<string[]> {
+  ): Observable<[string, string[]]> {
     const args = [];
+    let commitSha: string;
     args.push('format-patch');
     if (rangeOption) {
       args.push(rangeOption);
     }
     args.push(commit);
     return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.log({ '-1': null }))),
+      tap((result: ListLogSummary<DefaultLogFields>) => commitSha = result.latest.hash),
       switchMap(() => from(this.git.raw(args))),
       map(patchNames => {
         const result: string[] = [];
@@ -120,6 +127,7 @@ export class GitService {
         }
         return result;
       }),
+      map(patchNames => [commitSha, patchNames]),
     );
   }
 
@@ -278,7 +286,8 @@ export class GitService {
     message: string,
   ): Observable<void> {
     return from(this.git.cwd(repoDir)).pipe(
-      switchMap(() => from(this.git.raw(['notes', '--ref=kdo', 'add', commitSha, '-m', message]))),
+      switchMap(() => from(this.git.silent(true).raw(['notes', '--ref=kdo', 'add', commitSha, '-m', message]))),
+      catchError((err: string) => throwError(new Error(err))),
       map(() => { return; }),
     );
   }
@@ -286,6 +295,11 @@ export class GitService {
   public readLastNote(
     repoDir: string,
   ): Observable<{ commitSha: string; message: string }> {
+    return this.hasCommits(repoDir).pipe(
+      switchMap(hasCommits => {
+        if (!hasCommits) {
+          return of({ commitSha: '', message: '' });
+        }
         return this.log(repoDir, ['--notes=kdo', '--pretty=format: \'%H %N\'']).pipe(
           map(list => list.latest),
           map(logLine => logLine.hash),
@@ -298,5 +312,39 @@ export class GitService {
             }
           }),
         );
+      }),
+    );
+  }
+
+  public reset(
+    repoDir: string,
+    commitSha: string,
+  ): Observable<void> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.raw(['reset', '--hard', commitSha]))),
+      catchError((err: string) => throwError(new Error(err))),
+      map(() => { return; }),
+    );
+  }
+
+  public hasCommits(repoDir: string): Observable<boolean> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.raw(['rev-list', '-n', '1', '--all']))),
+      map(output => output != null),
+    );
+  }
+
+  public getHeadCommit(repoDir: string): Observable<string> {
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.raw(['rev-list', '-n', '1', '--all']))),
+      switchMap(hasCommits => {
+        if (hasCommits) {
+          return from(this.log(repoDir, { '-1': null })).pipe(
+            map((result: ListLogSummary<DefaultLogFields>) => result.latest.hash),
+          );
+        }
+        return of('');
+      }),
+    );
   }
 }
