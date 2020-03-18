@@ -18,7 +18,7 @@ export class ConfigService {
     this.envConfig = this.validateInput(config);
   }
 
-  private getEnvFile(): string {
+  private getEnvFile(): string | null {
     const env = process.env.NODE_ENV != null ? process.env.NODE_ENV : 'test';
     const file = `${env}.env`;
     if (!fs.existsSync(file)) {
@@ -38,7 +38,8 @@ export class ConfigService {
   private validateInput(envConfig: EnvConfig): EnvConfig {
     const nodeEnv = process.env.NODE_ENV != null ? process.env.NODE_ENV : 'development';
     const port = process.env.PORT != null ? process.env.PORT : 3000;
-    const host = process.env.REDIRECT_HOST != null ? process.env.REDIRECT_HOST : 'http://localhost';
+    const redirectHost = process.env.REDIRECT_HOST != null ? process.env.REDIRECT_HOST : 'http://localhost';
+    const bindingHost = process.env.BINDING_HOST != null ? process.env.BINDING_HOST : 'localhost';
     const clientId = process.env.CLIENT_ID;
     const clientSecret = process.env.CLIENT_SECRET;
     const sessionSecret = process.env.SESSION_SECRET;
@@ -51,7 +52,8 @@ export class ConfigService {
         .valid('development', 'production', 'test', 'provision')
         .default(nodeEnv),
       PORT: Joi.number().default(port),
-      REDIRECT_HOST: Joi.string().default(host),
+      REDIRECT_HOST: Joi.string().default(redirectHost),
+      BINDING_HOST: Joi.string().default(bindingHost),
       CLIENT_ID:
         clientId != null
           ? Joi.string().default(clientId)
@@ -82,6 +84,10 @@ export class ConfigService {
 
   public get redirectHost(): string {
     return this.envConfig.REDIRECT_HOST;
+  }
+
+  public get bindingHost(): string {
+    return this.envConfig.BINDING_HOST;
   }
 
   public get port(): number {

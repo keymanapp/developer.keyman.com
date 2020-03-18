@@ -37,6 +37,6 @@ async function bootstrap(): Promise<void> {
     }),
   );
   app.setGlobalPrefix('api');
-  await app.listen(config.port);
+  await app.listen(config.port, config.bindingHost);
 }
 bootstrap();
