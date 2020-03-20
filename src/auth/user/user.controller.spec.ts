@@ -1,9 +1,6 @@
 import {
   HttpModule,
   HttpService,
-  BadRequestException,
-  ForbiddenException,
-  UnauthorizedException,
   HttpException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -97,10 +94,10 @@ describe('User Controller', () => {
         await sut.getAccessToken(loginDto);
       } catch (e) {
         expect(e).toContainException(
-          new ForbiddenException({
+          new HttpException({
             accessToken: '',
             error: 'Request failed with status code 403',
-          }),
+          }, 403),
         );
       }
     });
@@ -119,10 +116,10 @@ describe('User Controller', () => {
         await sut.getAccessToken(loginDto);
       } catch (e) {
         expect(e).toContainException(
-          new UnauthorizedException({
+          new HttpException({
             accessToken: '',
             error: 'Request failed with status code 401',
-          }),
+          }, 401),
         );
       }
     });
@@ -169,11 +166,11 @@ describe('User Controller', () => {
         await sut.getAccessToken(loginDto);
       } catch (e) {
         expect(e).toContainException(
-          new BadRequestException({
+          new HttpException({
             accessToken: '',
             error:
               'error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.',
-          }),
+          }, 400),
         );
       }
     });
@@ -215,12 +212,12 @@ describe('User Controller', () => {
         await sut.getUserInformation(session, 'token invalid');
       } catch (e) {
         expect(e).toContainException(
-          new UnauthorizedException({
+          new HttpException({
             login: '',
             name: '',
             avatarUrl: '',
             error: 'Request failed with status code 401',
-          }),
+          }, 401),
         );
       }
     });

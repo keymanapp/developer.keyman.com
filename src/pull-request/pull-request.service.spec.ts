@@ -21,6 +21,8 @@ describe('PullRequestService', () => {
   let keyboardsRepo: string;
 
   beforeEach(async () => {
+    jest.setTimeout(60000 /* 60s */);
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule, GithubModule],
       providers: [PullRequestService, GitService],
@@ -56,7 +58,11 @@ describe('PullRequestService', () => {
   });
 
   afterEach(() => {
-    deleteFolderRecursive(workDir);
+    try {
+      deleteFolderRecursive(workDir);
+    } catch (e) {
+      // simply ignore error
+    }
   });
 
   it('should be defined', () => {

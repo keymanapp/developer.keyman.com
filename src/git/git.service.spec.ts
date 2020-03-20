@@ -321,8 +321,8 @@ describe('GitService', () => {
       const branchSummary = await sut.getBranches(repoDir).toPromise();
       expect(branchSummary.all).toContain('test');
       expect(branchSummary.current).toEqual('test');
-      expect(branchSummary.branches.test.label).toEqual('commit on test branch');
-      expect(branchSummary.branches.master.label).toEqual('my commit message');
+      expect(branchSummary.branches.test.label).toContain('commit on test branch');
+      expect(branchSummary.branches.master.label).toContain('my commit message');
       expect(branchSummary.branches.test.commit).not.toEqual(branchSummary.branches.master.commit);
     });
 
@@ -387,8 +387,8 @@ describe('GitService', () => {
       const branchSummary = await sut.getBranches(repoDir).toPromise();
       expect(branchSummary.all).toContain('test');
       expect(branchSummary.current).toEqual('test');
-      expect(branchSummary.branches.test.label).toEqual('commit on test branch');
-      expect(branchSummary.branches.master.label).toEqual('my commit message');
+      expect(branchSummary.branches.test.label).toContain('commit on test branch');
+      expect(branchSummary.branches.master.label).toContain('my commit message');
       expect(branchSummary.branches.test.commit).not.toEqual(
         branchSummary.branches.master.commit,
       );

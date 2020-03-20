@@ -151,6 +151,13 @@
 			"$awesomets-lint"
 		],
 		"group": "build"
+	},
+	{
+		"type": "gulp",
+		"task": "deploy",
+		"problemMatcher": [
+			"$eslint-stylish"
+		]
 	}
 ]
 }
