@@ -1,0 +1,17 @@
+<div class="centered">
+  <div *ngIf="project">
+    <div>
+      <label>GitHub repo: <a href="{{ project.url }}">{{ project.url }}</a></label>
+    </div>
+    <div>
+      <label>Keyboard id: <input [(ngModel)]="project.name" placeholder="name"/></label>
+    </div>
+    <button (click)="createPullRequest()">Create pull request</button>
+  </div>
+  <div *ngIf="!project">
+    <div class="spinner">
+      <fa-icon icon="spinner" spin="true" size="5x"></fa-icon>
+    </div>
+    <div class="message">Please wait while we get your project ready</div>
+  </div>
+</div>

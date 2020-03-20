@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Observable, of, empty } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, switchMap, tap } from 'rxjs/operators';
 import fs = require('fs');
 import path = require('path');
+import debugModule = require('debug');
+const debug = debugModule('kdo:backendProject');
 
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
@@ -26,11 +28,15 @@ export class BackendProjectService {
     return fileExists(localRepo).pipe(
       switchMap(exists => {
         if (exists) {
+          debug(`localRepo '${localRepo}' exists, updating local repo`);
           return this.updateLocalRepo(localRepo, localBranch, remoteName, remoteRepo, remoteBranch);
         } else {
+          debug(`localRepo '${localRepo}' does not exist, cloning ${remoteRepo} as ${remoteName}`);
+          debug(`branch ${ remoteBranch } (local branch: ${ localBranch })`);
           return this.cloneRepoAndCheckoutBranch(localRepo, localBranch, remoteName, remoteRepo, remoteBranch);
         }
       }),
+      tap(() => debug('cloneOrUpdateProject finished')),
     );
   }
 
@@ -57,9 +63,9 @@ export class BackendProjectService {
       switchMap(hasRemote => {
         if (!hasRemote) {
           // add remote and fetch repo
-          return this.addRemoteAndFetchRepo(localRepo, remoteRepo, remoteName, remoteBranch);
+          return this.addRemoteAndFetchRepo(localRepo, remoteRepo, remoteName, remoteBranch).pipe(switchMap(() => of('')));
         }
-        return empty();
+        return of('');
       }),
       switchMap(() => this.checkoutBranchIfItDoesNotExist(localRepo, localBranch, remoteName, remoteBranch)),
       switchMap(() => this.gitService.pull(localRepo, remoteName, remoteBranch)),

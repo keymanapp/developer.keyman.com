@@ -176,7 +176,10 @@ describe('Projects Controller', () => {
       // Should clone single-keyboards repo
       const expectedRepo = path.join(workDir, 'foo', 'remoteTestRepo');
       expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
-      expect(project).toEqual({ repoUrl: expectedRepo, name: 'remoteTestRepo' });
+      expect(project).toEqual({
+        repoUrl: path.join(gitHubDir, 'foo', 'remoteTestRepo.git'),
+        name: 'remoteTestRepo',
+      });
 
       // Should clone keyboards repo
       const expectedKeyboardsRepo = path.join(workDir, 'keyboards');
@@ -201,7 +204,7 @@ describe('Projects Controller', () => {
               path.join(gitHubDir, 'foo', 'keyboards.git'),
               true,
           ).pipe(
-            map(() => ({ name: 'foo' })),
+            map(() => ({ name: 'keyboards' })),
           );
         });
 
@@ -215,7 +218,7 @@ describe('Projects Controller', () => {
       const expectedRepo = path.join(workDir, 'foo', 'remoteTestRepo');
       expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
       expect(project).toEqual({
-        repoUrl: expectedRepo,
+        repoUrl: path.join(gitHubDir, 'foo', 'remoteTestRepo.git'),
         name: 'remoteTestRepo',
       });
 

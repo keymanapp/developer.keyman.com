@@ -3,9 +3,9 @@ import { HttpClientModule } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 import { StorageServiceModule } from 'ngx-webstorage-service';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 import { UserComponent } from './user.component';
+import { FontAwesomeTestingModule } from '../../font-awesome-testing.module';
 
 describe('UserComponent', () => {
   let component: UserComponent;
@@ -14,7 +14,7 @@ describe('UserComponent', () => {
   beforeEach(() => {
     return TestBed.configureTestingModule({
       imports: [
-        FontAwesomeModule,
+        FontAwesomeTestingModule,
         HttpClientModule,
         StorageServiceModule,
         RouterModule.forRoot([
