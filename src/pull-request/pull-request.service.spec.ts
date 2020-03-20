@@ -56,7 +56,11 @@ describe('PullRequestService', () => {
   });
 
   afterEach(() => {
-    deleteFolderRecursive(workDir);
+    try {
+      deleteFolderRecursive(workDir);
+    } catch (e) {
+      // simply ignore error
+    }
   });
 
   it('should be defined', () => {
