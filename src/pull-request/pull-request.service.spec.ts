@@ -21,6 +21,8 @@ describe('PullRequestService', () => {
   let keyboardsRepo: string;
 
   beforeEach(async () => {
+    jest.setTimeout(60000 /* 60s */);
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule, GithubModule],
       providers: [PullRequestService, GitService],
