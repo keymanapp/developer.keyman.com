@@ -126,12 +126,15 @@ export class BackendProjectService {
   }
 
   public getKeyboardId(repoName: string, localRepo: string): string {
-    const keyboardInfoFile = path.join(localRepo, `${repoName}.keyboard_info`);
-    if (fs.existsSync(keyboardInfoFile)) {
-      const fileContent = fs.readFileSync(keyboardInfoFile);
-      const data = JSON.parse(fileContent.toString());
-      if (!!data.id) {
-        return data.id;
+    const files = fs.readdirSync(localRepo).filter(fn => fn.endsWith('.keyboard_info'));
+    if (files?.length) {
+      const keyboardInfoFile = path.join(localRepo, files[0]);
+      if (fs.existsSync(keyboardInfoFile)) {
+        const fileContent = fs.readFileSync(keyboardInfoFile);
+        const data = JSON.parse(fileContent.toString());
+        if (!!data.id) {
+          return data.id;
+        }
       }
     }
 
