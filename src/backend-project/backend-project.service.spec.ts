@@ -250,6 +250,24 @@ describe('BackendProjectService', () => {
       // Verify
       expect(id).toEqual('enga');
     });
+
+    it('extracts id from keyboard_info file if it has an id but a different name', () => {
+      // Setup
+      expect.assertions(1);
+      fs.appendFileSync(path.join(testDir, 'keyboard_enga.keyboard_info'), `{
+        "id": "test",
+        "license": "mit",
+        "languages": [ "enq-Latn" ],
+        "description": "The Enga keyboard supports the Enga language of Papua New Guinea"
+      }`);
+
+      // Execute
+      const id = sut.getKeyboardId('enga', testDir);
+
+      // Verify
+      expect(id).toEqual('test');
+    });
+
   });
 
 });
