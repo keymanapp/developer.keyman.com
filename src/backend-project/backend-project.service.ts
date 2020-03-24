@@ -59,13 +59,18 @@ export class BackendProjectService {
     remoteRepo: string,
     remoteBranch: string,
   ): Observable<string> {
+    debug(`checking if ${localRepo} has remote ${remoteName}`);
     return this.gitService.hasRemote(localRepo, remoteName).pipe(
       switchMap(hasRemote => {
         if (!hasRemote) {
+          debug(`nope - add remote ${remoteName} and fetch branch ${remoteBranch} of ${localRepo} from ${remoteRepo}`);
           // add remote and fetch repo
-          return this.addRemoteAndFetchRepo(localRepo, remoteRepo, remoteName, remoteBranch).pipe(switchMap(() => of('')));
+          return this.addRemoteAndFetchRepo(localRepo, remoteRepo, remoteName, remoteBranch);
         }
-        return of('');
+        debug(`yep - we have remote ${remoteName}; fetching branch ${remoteBranch} of ${localRepo} from ${remoteName}`);
+        return this.gitService.fetch(localRepo, remoteName, remoteBranch).pipe(
+          map(() => { return; }),
+        );
       }),
       switchMap(() => this.checkoutBranchIfItDoesNotExist(localRepo, localBranch, remoteName, remoteBranch)),
       switchMap(() => this.gitService.pull(localRepo, remoteName, remoteBranch)),
