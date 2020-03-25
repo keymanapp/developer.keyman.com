@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Observable, from, of, throwError } from 'rxjs';
-import { map, flatMap, switchMap, tap, catchError } from 'rxjs/operators';
+import { Observable, of, throwError, forkJoin, concat } from 'rxjs';
+import { map, switchMap, tap, catchError } from 'rxjs/operators';
 
 import path = require('path');
+import debugModule = require('debug');
+const debug = debugModule('kdo:pullRequest');
 
 import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
 import { ConfigService } from '../config/config.service';
@@ -43,6 +45,8 @@ export class PullRequestService {
     let singleKbHead: string;
     let keyboardsHead: string;
 
+    debug(`transferChanges from ${singleKbRepoPath} to ${keyboardsRepoPath}`);
+
     return this.gitService.readLastNote(singleKbRepoPath).pipe(
       tap(noteInfo => singleKbNoteInfo = noteInfo),
       switchMap(() => this.gitService.getHeadCommit(singleKbRepoPath)),
@@ -73,10 +77,16 @@ export class PullRequestService {
       switchMap(() => this.extractPatches(singleKbRepoPath)),
       switchMap(([sha, patchFiles]) => {
         exportedCommitInSingleKbRepo = sha;
-        return from(patchFiles);
+        const observables: Observable<string>[] = [];
+        for (const patchFile of patchFiles) {
+          debug(`converting ${patchFile}`);
+          observables.push(this.convertPatch(patchFile, path.basename(singleKbRepoPath)));
+        }
+        return forkJoin(observables).pipe(
+          tap(val => debug(val)),
+        );
       }),
-      map(patchFile => this.convertPatch(patchFile, path.basename(singleKbRepoPath))),
-      flatMap(patchFile => this.importPatch(keyboardsRepoPath, patchFile)),
+      switchMap(importFile => this.importPatch(keyboardsRepoPath, importFile)),
       switchMap(importedCommitInKeyboardsRepo => this.createNotes(
         singleKbRepoPath,
         keyboardsRepoPath,
@@ -104,9 +114,14 @@ export class PullRequestService {
 
   public importPatch(
     localRepo: string,
-    patchFiles: Observable<string>,
+    patchFiles: string[],
   ): Observable<string> {
-    return this.gitService.import(localRepo, patchFiles).pipe(
+    const observables: Observable<void>[] = [];
+    for (const patchFile of patchFiles) {
+      debug(`importing ${patchFile}`);
+      observables.push(this.gitService.import(localRepo, patchFile));
+    }
+    return concat(observables).pipe(
       switchMap(() => this.gitService.log(localRepo, { '-1': null })),
       map((logs) => logs.latest.hash),
     );
@@ -160,6 +175,7 @@ export class PullRequestService {
     if (token == null || token.length === 0) {
       return null;
     }
+    debug(`createPullRequestOnKeyboardsRepo for ${head}: ${title} - ${description}`);
     return this.githubService.createPullRequest(
       token,
       this.config.organizationName,
