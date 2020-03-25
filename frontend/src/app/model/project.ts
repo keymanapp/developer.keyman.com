@@ -1,14 +1,17 @@
 export class Project {
-  public name: string;
+  public keyboardId: string;
+  public repoName: string;
   public url: string;
   public enabled: boolean;
 
   public constructor(
-    name: string,
+    keyboardId: string,
     enabled: boolean,
+    repoName: string = keyboardId,
     url: string | null = null,
   ) {
-    this.name = name;
+    this.keyboardId = keyboardId;
+    this.repoName = repoName;
     this.enabled = enabled;
     this.url = url;
   }

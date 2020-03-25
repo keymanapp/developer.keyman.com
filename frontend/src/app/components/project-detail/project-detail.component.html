@@ -1,17 +1,29 @@
 <div class="centered">
-  <div *ngIf="project">
-    <div>
-      <label>GitHub repo: <a href="{{ project.url }}">{{ project.url }}</a></label>
-    </div>
-    <div>
-      <label>Keyboard id: <input [(ngModel)]="project.name" placeholder="name"/></label>
-    </div>
-    <button (click)="createPullRequest()">Create pull request</button>
-  </div>
-  <div *ngIf="!project">
+  <div *ngIf="!project || !pullRequest">
     <div class="spinner">
       <fa-icon icon="spinner" spin="true" size="5x"></fa-icon>
     </div>
     <div class="message">Please wait while we get your project ready</div>
+  </div>
+  <div *ngIf="project && pullRequest && pullRequest.pullRequest === 0">
+    <div>
+      <label>Keyboard id: {{ project.keyboardId }}</label>
+    </div>
+    <div>
+      <label>GitHub repo: <a href="{{ project.url }}">{{ project.url }}</a></label>
+    </div>
+    <a [routerLink]="['/projects', project.repoName, 'pr']"><button>Create pull request</button></a>
+  </div>
+  <div *ngIf="project && pullRequest && pullRequest.pullRequest > 0">
+    <div>
+      <label>Pull request: <a href="{{ pullRequest.url }}">#{{ pullRequest.pullRequest }}</a></label>
+    </div>
+    <div>
+      <label>Keyboard id: {{ project.keyboardId }}</label>
+    </div>
+    <div>
+      <label>GitHub repo: <a href="{{ project.url }}">{{ project.url }}</a></label>
+    </div>
+    <a [routerLink]="['/projects', project.repoName, 'pr']"><button>Update pull request</button></a>
   </div>
 </div>

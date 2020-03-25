@@ -12,6 +12,7 @@ import { LoginComponent } from './components/login/login.component';
 import { ProjectsComponent } from './components/projects/projects.component';
 import { ProjectDetailComponent } from './components/project-detail/project-detail.component';
 import { FontAwesomeTestingModule } from './font-awesome-testing.module';
+import { PullRequestComponent } from './components/pull-request/pull-request.component';
 
 describe('AppComponent', () => {
   beforeEach(() => {
@@ -30,6 +31,7 @@ describe('AppComponent', () => {
         LoginComponent,
         ProjectsComponent,
         ProjectDetailComponent,
+        PullRequestComponent,
       ],
       providers: [{ provide: APP_BASE_HREF, useValue: './' }],
     }).compileComponents();

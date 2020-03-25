@@ -11,6 +11,7 @@ import { UserComponent } from './components/user/user.component';
 import { LoginComponent } from './components/login/login.component';
 import { ProjectsComponent } from './components/projects/projects.component';
 import { ProjectDetailComponent } from './components/project-detail/project-detail.component';
+import { PullRequestComponent } from './components/pull-request/pull-request.component';
 
 @NgModule({
   declarations: [
@@ -19,6 +20,7 @@ import { ProjectDetailComponent } from './components/project-detail/project-deta
     LoginComponent,
     ProjectsComponent,
     ProjectDetailComponent,
+    PullRequestComponent,
   ],
   imports: [
     BrowserModule,

@@ -2,11 +2,11 @@
 <ul class='projects' *ngIf="projects.length">
   <li *ngFor='let project of projects'>
     <div *ngIf="project.enabled" class="enabled">
-      <a [routerLink]="['/projects', project.name]">
-        {{project.name}}
+      <a [routerLink]="['/projects', project.repoName]">
+        {{project.repoName}}
       </a>
     </div>
-    <div *ngIf="!project.enabled" class="disabled"><div>{{project.name}}</div></div>
+    <div *ngIf="!project.enabled" class="disabled"><div>{{project.repoName}}</div></div>
   </li>
 </ul>
 <div class="no-projects">
