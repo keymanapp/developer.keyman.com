@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { switchMap } from 'rxjs/operators';
 
+import { map, switchMap } from 'rxjs/operators';
+
+import { GitHubPullRequest } from '../../model/git-hub-pull-request';
 import { Project } from '../../model/project';
 import { SingleProjectService } from '../../services/single-project.service';
 
@@ -12,6 +14,7 @@ import { SingleProjectService } from '../../services/single-project.service';
 })
 export class ProjectDetailComponent implements OnInit {
   public project: Project;
+  public pullRequest: GitHubPullRequest;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -19,13 +22,16 @@ export class ProjectDetailComponent implements OnInit {
   ) { }
 
   ngOnInit() {
+    let name: string;
     this.route.paramMap.pipe(
-      switchMap((params: ParamMap) => this.service.cloneProject(params.get('name'))),
-    ).subscribe(
-      (project: Project) => this.project = project,
-    );
-  }
-
-  public createPullRequest(): void {
+      switchMap((params: ParamMap) => {
+        name = params.get('name');
+        return this.service.cloneProject(name);
+      }),
+      map((project: Project) => { this.project = project; }),
+      switchMap(() => this.service.getPullRequest(name)),
+    ).subscribe(pullRequest => {
+      this.pullRequest = pullRequest;
+    });
   }
 }

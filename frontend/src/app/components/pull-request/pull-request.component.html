@@ -1,0 +1,17 @@
+<div class="centered">
+  <div *ngIf="pullRequest">
+    <div>
+      <label>Successfully {{ appliedAction }} pull request <a href="{{ pullRequest.url }}">#{{ pullRequest.pullRequest }}</a> for {{ pullRequest.keyboardId }}.</label>
+    </div>
+    <div>
+      <label><a href="{{ pullRequest.url }}">{{ pullRequest.url }}</a></label>
+    </div>
+    <a [routerLink]="['/projects']"><button>Select another project</button></a>
+  </div>
+  <div *ngIf="!pullRequest">
+    <div class="spinner">
+      <fa-icon icon="spinner" spin="true" size="5x"></fa-icon>
+    </div>
+    <div class="message">Please wait while we create the pull request on your behalf...</div>
+  </div>
+</div>
