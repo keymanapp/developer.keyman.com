@@ -116,6 +116,7 @@ export class ProjectsController {
     @Param() params,
   ): Observable<GitHubPullRequest> {
     const head = `${session.login}:${session.login}-${params.repo}`;
+    debug(`createPullRequest for ${params.repo}`);
     return this.pullRequestService
       .transferChanges(
         path.join(this.configService.workDirectory, session.login, params.repo),
@@ -123,6 +124,7 @@ export class ProjectsController {
       )
       .pipe(
         last(),
+        tap(() => debug(`pushing changes in ${this.backendService.localKeyboardsRepo}`)),
         switchMap(() =>
           this.gitService.push(
             this.backendService.localKeyboardsRepo,
@@ -131,6 +133,7 @@ export class ProjectsController {
             token,
           ),
         ),
+        tap(() => debug('create PR on keyboards repo')),
         switchMap(() =>
           this.pullRequestService.createPullRequestOnKeyboardsRepo(
             token,

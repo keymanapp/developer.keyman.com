@@ -8,6 +8,7 @@ import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typi
 import path = require('path');
 import debugModule = require('debug');
 const debug = debugModule('debug');
+const trace = debugModule('kdo:git');
 
 import { mkdir, fileExists } from '../utils/file';
 import { exec } from '../utils/child-process';
@@ -133,11 +134,12 @@ export class GitService {
 
   public import(
     repoDir: string,
-    patchFiles: Observable<string>,
+    patchFile: string,
   ): Observable<void> {
     return from(this.git.cwd(repoDir)).pipe(
-      flatMap(() => patchFiles),
-      flatMap(patchFile => from(this.git.raw(['am', patchFile]))),
+      map(() => patchFile),
+      tap(file => trace(`importing ${file}`)),
+      flatMap(file => from(this.git.raw(['am', file]))),
       map(() => { /* void */ }),
       takeLast(1),
     );
