@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
 
 import fs = require('fs');
 import os = require('os');
 import path = require('path');
+import debugModule = require('debug');
+const debug = debugModule('kdo:pullRequestTests');
 
 import { GitService } from '../git/git.service';
 import { ConfigService } from '../config/config.service';
@@ -504,8 +505,10 @@ index 0000000..4d3b8c1
       );
 
       // Execute/Verify
-      sut.importPatch(keyboardsRepo, of(patchFile1, patchFile2))
+      const patchFiles = [patchFile1, patchFile2];
+      sut.importPatch(keyboardsRepo, patchFiles)
         .subscribe((commit: string) => {
+          debug(`got commit=${commit}`);
           const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
           expect(fs.existsSync(firstFile)).toBe(true);
           expect(fs.readFileSync(firstFile).toString()).toEqual(`some text${os.EOL}some more text${os.EOL}`);

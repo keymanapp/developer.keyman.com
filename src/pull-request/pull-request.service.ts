@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Observable, of, throwError, forkJoin, concat } from 'rxjs';
+import { Observable, of, throwError, forkJoin } from 'rxjs';
 import { map, switchMap, tap, catchError } from 'rxjs/operators';
 
 import path = require('path');
@@ -116,14 +116,23 @@ export class PullRequestService {
     localRepo: string,
     patchFiles: string[],
   ): Observable<string> {
-    const observables: Observable<void>[] = [];
-    for (const patchFile of patchFiles) {
-      debug(`importing ${patchFile}`);
-      observables.push(this.gitService.import(localRepo, patchFile));
+    return this.importPatchInternal(localRepo, patchFiles);
+  }
+
+  private importPatchInternal(
+    localRepo: string,
+    patchFiles: string[],
+  ): Observable<string> {
+    if (patchFiles.length <= 0) {
+      return this.gitService.log(localRepo, { '-1': null }).pipe(
+        map(logs => logs.latest.hash),
+      );
     }
-    return concat(observables).pipe(
-      switchMap(() => this.gitService.log(localRepo, { '-1': null })),
-      map((logs) => logs.latest.hash),
+    const firstPatchFile = patchFiles.shift();
+    debug(`importing ${firstPatchFile} into ${localRepo}`);
+    return this.gitService.import(localRepo, firstPatchFile).pipe(
+      tap(() => debug(`import of ${firstPatchFile} done`)),
+      switchMap(() => this.importPatchInternal(localRepo, patchFiles)),
     );
   }
 
