@@ -54,7 +54,7 @@ export class ProjectsController {
     const localRepo = this.backendService.getProjectRepo(session.login, params.repo);
     const remoteRepo = `${this.gitHubUrl}/${session.login}/${params.repo}.git`;
 
-    debug(`In createRepo: login: ${session.login}, repo: ${params.repo}: localRepo: ${localRepo}, \\`);
+    debug(`In createRepo: login: ${session.login}, repo: ${params.repo}, localRepo: ${localRepo}, \\`);
     debug(`    remoteRepo: ${ remoteRepo }, branch: ${ this.backendService.branchName }`);
 
     const createSingleProject = this.backendService.cloneOrUpdateProject(

@@ -207,7 +207,7 @@ describe('GitService', () => {
       expect(patches[0]).toEqual(path.join(repoDir, '0001-second-commit.patch'));
 
       // Execute 2
-      await sut.import(secondRepoDir, from(patches)).toPromise();
+      await sut.import(secondRepoDir, patches[0]).toPromise();
 
       // Verify 2
       log = await sut.log(secondRepoDir).toPromise();
@@ -233,7 +233,8 @@ describe('GitService', () => {
       const secondRepoDir = await sut.createRepo(path.join(tmpDir, 'secondRepo')).toPromise();
 
       // Execute 2
-      await sut.import(secondRepoDir, from(patches)).toPromise();
+      await sut.import(secondRepoDir, patches[0]).toPromise();
+      await sut.import(secondRepoDir, patches[1]).toPromise();
 
       // Verify 2
       const log = await sut.log(secondRepoDir).toPromise();
@@ -290,7 +291,8 @@ describe('GitService', () => {
       const secondRepoDir = await sut.createRepo(path.join(tmpDir, 'secondRepo')).toPromise();
 
       // Execute
-      await sut.import(secondRepoDir, from(patches)).toPromise();
+      await sut.import(secondRepoDir, patches[0]).toPromise();
+      await sut.import(secondRepoDir, patches[1]).toPromise();
 
       // Verify
       const log = await sut.log(secondRepoDir).toPromise();

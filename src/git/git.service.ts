@@ -93,6 +93,7 @@ export class GitService {
 
     const notesRef = remoteName ? `remote.${remoteName}.fetch` : 'remote.origin.fetch';
 
+    trace(`clone remoteUrl: ${remoteUrl}, localPath: ${localPath}, options: ${options}`);
     const parentDir = path.dirname(localPath);
     return mkdir(parentDir, { recursive: true }).pipe(
       switchMap(() => from(this.git.cwd(parentDir))),
