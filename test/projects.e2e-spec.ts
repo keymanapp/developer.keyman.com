@@ -61,7 +61,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
   function waitForRepoToNotExist(
     owner: string,
     repo: string,
-    timeoutSeconds: number = 300,
+    timeoutSeconds = 300,
   ): Observable<void> {
     return interval(1000).pipe(
       switchMap((x: number) => {
@@ -71,7 +71,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
 
         return githubService.repoExists(owner, repo);
       }),
-      takeWhile(exists => exists as boolean),
+      takeWhile(exists => exists),
       takeLast(1),
       map(() => { /* empty */ }),
     );
@@ -94,7 +94,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     });
   }
 
-  function deleteLocalRepos() {
+  function deleteLocalRepos(): void {
     const keyboardsRepo = path.join(
       configService.workDirectory,
       configService.keyboardsRepoName,
