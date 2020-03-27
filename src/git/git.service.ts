@@ -205,13 +205,18 @@ export class GitService {
     branch: string,
     token: string,
   ): Observable<void> {
-    // It looks like simplegit has a bug that doesn't allow to specify the extraheader with the
-    // raw method (https://github.com/steveukx/git-js/issues/424).
-    // Directly executing git works...
-    return exec(`git -c http.extraheader="Authorization: ${token}" push ${remote} ${branch}`, {
-      cwd: repoDir,
-    }).pipe(
-      catchError(() => of(0)),
+    trace(`cd ${repoDir} && git -c http.extraheader="Authorization: ${token}" push ${remote} ${branch}`);
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => this.git.raw([
+        '-c',
+        `http.extraheader=Authorization: ${token}`,
+        'push',
+        remote,
+        branch,
+      ])),
+      // catchError(() => of(0)),
+      catchError(() => { trace('got error in push'); return of(0); }),
+      tap(() => trace('push finished')),
       map(() => {
         return;
       }),
