@@ -177,7 +177,7 @@ describe('Projects Controller', () => {
       const expectedRepo = path.join(workDir, 'foo', 'remoteTestRepo');
       expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
       expect(project).toEqual({
-        repoUrl: path.join(gitHubDir, 'foo', 'remoteTestRepo.git'),
+        repoUrl: `${gitHubDir}/foo/remoteTestRepo.git`,
         name: 'remoteTestRepo',
       });
 
@@ -218,7 +218,7 @@ describe('Projects Controller', () => {
       const expectedRepo = path.join(workDir, 'foo', 'remoteTestRepo');
       expect(fs.existsSync(path.join(expectedRepo, '.git'))).toBe(true);
       expect(project).toEqual({
-        repoUrl: path.join(gitHubDir, 'foo', 'remoteTestRepo.git'),
+        repoUrl: `${gitHubDir}/foo/remoteTestRepo.git`,
         name: 'remoteTestRepo',
       });
 
