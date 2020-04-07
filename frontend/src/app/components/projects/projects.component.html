@@ -2,7 +2,7 @@
 <ul class='projects' *ngIf="projects.length">
   <li *ngFor='let project of projects'>
     <div *ngIf="project.enabled" class="enabled">
-      <a routerLink="/api/projects/{{project.name}}">
+      <a [routerLink]="['/projects', project.name]">
         {{project.name}}
       </a>
     </div>

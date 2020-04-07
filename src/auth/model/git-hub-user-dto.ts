@@ -1,7 +1,7 @@
 import { GitHubUser } from '../../interfaces/git-hub-user.interface';
 
 export class GitHubUserDto {
-  constructor(data: GitHubUser = null) {
+  constructor(data: GitHubUser | null = null) {
     if (data != null) {
       this.login = data.login;
       this.name = data.name;

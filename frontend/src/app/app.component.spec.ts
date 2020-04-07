@@ -1,31 +1,37 @@
 import { HttpClientModule } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
-import { BrowserModule } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
+import { FormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
 import { StorageServiceModule } from 'ngx-webstorage-service';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { UserComponent } from './components/user/user.component';
 import { LoginComponent } from './components/login/login.component';
 import { ProjectsComponent } from './components/projects/projects.component';
+import { ProjectDetailComponent } from './components/project-detail/project-detail.component';
+import { FontAwesomeTestingModule } from './font-awesome-testing.module';
 
 describe('AppComponent', () => {
   beforeEach(() => {
-    library.add(faSignOutAlt);
     return TestBed.configureTestingModule({
       imports: [
         StorageServiceModule,
         BrowserModule,
         HttpClientModule,
-        FontAwesomeModule,
+        FontAwesomeTestingModule,
         AppRoutingModule,
+        FormsModule,
       ],
-      declarations: [AppComponent, UserComponent, LoginComponent, ProjectsComponent],
-      providers: [ {provide: APP_BASE_HREF, useValue: './' } ]
+      declarations: [
+        AppComponent,
+        UserComponent,
+        LoginComponent,
+        ProjectsComponent,
+        ProjectDetailComponent,
+      ],
+      providers: [{ provide: APP_BASE_HREF, useValue: './' }],
     }).compileComponents();
   });
 

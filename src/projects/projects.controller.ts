@@ -1,7 +1,9 @@
 import { Controller, Get, Headers, Session, Post, Param, Put } from '@nestjs/common';
 import { Observable, forkJoin } from 'rxjs';
-import { map, toArray, filter, switchMap, last } from 'rxjs/operators';
+import { map, toArray, filter, switchMap, last, tap } from 'rxjs/operators';
 import path = require('path');
+import debugModule = require('debug');
+const debug = debugModule('kdo:projects');
 
 import { GithubService } from '../github/github.service';
 import { BackendProjectService } from '../backend-project/backend-project.service';
@@ -52,21 +54,26 @@ export class ProjectsController {
     const localRepo = this.backendService.getProjectRepo(session.login, params.repo);
     const remoteRepo = `${this.gitHubUrl}/${session.login}/${params.repo}.git`;
 
+    debug(`In createRepo: login: ${session.login}, repo: ${params.repo}: localRepo: ${localRepo}, \\`);
+    debug(`    remoteRepo: ${ remoteRepo }, branch: ${ this.backendService.branchName }`);
+
     const createSingleProject = this.backendService.cloneOrUpdateProject(
         remoteRepo,
         localRepo,
         this.backendService.branchName,
         session.login,
     ).pipe(
-      map(project => ({
+      tap(project => debug(`cloneOrUpdateProject(singleProj) created in ${project}`)),
+      map(() => ({
         name: this.backendService.getKeyboardId(params.repo, localRepo),
-        repoUrl: project,
+        repoUrl: remoteRepo,
       })),
     );
 
     const createKeyboardsRepo = this.forkCloneAndUpdateProject(
       token, session.login, this.configService.keyboardsRepoName, params.repo, 'master',
     ).pipe(
+      tap(project => debug(`forkCloneAndUpdateProject(keyboards) created in ${project}`)),
       map(project => ({ name: params.repo, repoUrl: project })),
     );
 

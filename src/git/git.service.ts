@@ -82,7 +82,7 @@ export class GitService {
       return throwError(new Error('relative path'));
     }
 
-    const options = [];
+    const options: string[] = [];
     if (bare) {
       options.push('--bare');
     }
@@ -107,9 +107,9 @@ export class GitService {
   public export(
     repoDir: string,
     commit: string,
-    rangeOption: string = null,
+    rangeOption: string | null = null,
   ): Observable<[string, string[]]> {
-    const args = [];
+    const args: string[] = [];
     let commitSha: string;
     args.push('format-patch');
     if (rangeOption) {

@@ -14,6 +14,9 @@ module.exports = {
         "project": "tsconfig.json",
         "sourceType": "module"
     },
+    "include": [
+      "src/**/*.ts"
+    ],
     "plugins": [
         "@typescript-eslint",
         "@typescript-eslint/tslint"

@@ -13,9 +13,9 @@ import { Project } from '../model/project';
 })
 export class ProjectsService {
   constructor(
-    private http: HttpClient,
-    private userService: UserService,
-    private errorHelper: ErrorHelper
+    private readonly http: HttpClient,
+    private readonly userService: UserService,
+    private readonly errorHelper: ErrorHelper
   ) { }
 
   public getRepos(): Observable<Project[]> {
