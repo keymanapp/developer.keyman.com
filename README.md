@@ -10,7 +10,7 @@ The backend is implemented with [nest](https://nestjs.com/), the included fronte
 
 ## Installation
 
-Install `node` version 10.x and `npm` version 6.9.0. Then run the following commands:
+Install `node` version 12.x and `npm` version 6.13.x. Then run the following commands:
 
 ```bash
 # Install nestjs and angular
@@ -60,6 +60,24 @@ e2e tests on back- and frontend with a single command:
 
 ```bash
 $ gulp
+```
+
+### Debug Output
+
+Various components can print debug output. To enable the debug output, check the component
+you're interested in and set the `DEBUG` environment variable.
+
+For example, `git.service.ts` contains the following line close to the top of the file:
+
+```csharp
+const debug = debugModule('debug');
+const trace = debugModule('kdo:git');
+```
+
+To get the `trace` output you can set the environment variable:
+
+```bash
+$ export DEBUG=kdo:git
 ```
 
 ## Test
