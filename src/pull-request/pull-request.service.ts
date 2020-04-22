@@ -1,16 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { Observable, of, throwError, forkJoin } from 'rxjs';
-import { map, switchMap, tap, catchError } from 'rxjs/operators';
+import { HttpException, Injectable } from '@nestjs/common';
+
+import { forkJoin, Observable, of, throwError } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
+
+import { ConfigService } from '../config/config.service';
+import { GitService } from '../git/git.service';
+import { GithubService } from '../github/github.service';
+import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
+import { readFile, writeFile } from '../utils/file';
 
 import path = require('path');
 import debugModule = require('debug');
 const debug = debugModule('kdo:pullRequest');
-
-import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
-import { ConfigService } from '../config/config.service';
-import { GitService } from '../git/git.service';
-import { GithubService } from '../github/github.service';
-import { readFile, writeFile } from '../utils/file';
 
 @Injectable()
 export class PullRequestService {
@@ -184,7 +185,7 @@ export class PullRequestService {
     if (token == null || token.length === 0) {
       return null;
     }
-    debug(`createPullRequestOnKeyboardsRepo for ${head}: ${title} - ${description}`);
+    debug(`createPullRequestOnKeyboardsRepo for ${head}: '${title}' - '${description}'`);
     return this.githubService.createPullRequest(
       token,
       this.config.organizationName,
@@ -215,4 +216,30 @@ export class PullRequestService {
       );
   }
 
+  public getPullRequestOnKeyboardsRepo(
+    token: string, // the token used to authorize with GitHub
+    head: string, // name of the branch that contains the new commits. Use `username/repo:branch` for cross-repo PRs
+  ): Observable<GitHubPullRequest> {
+    debug(`checking if we can find a PR for ${head}`);
+    return this.githubService.pullRequestExists(
+      token,
+      this.config.organizationName,
+      this.config.keyboardsRepoName,
+      head,
+    ).pipe(
+      tap(prNumber => {
+        if (prNumber < 0) {
+          debug(`no existing open PR for ${head}`);
+          throw new HttpException('Pull request does not exist', 404);
+        }
+        debug(`found a PR: #${prNumber}`);
+      }),
+      switchMap(prNumber => this.githubService.pullRequestDetails(
+        token,
+        this.config.organizationName,
+        this.config.keyboardsRepoName,
+        prNumber,
+      )),
+    );
+  }
 }

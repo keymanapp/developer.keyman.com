@@ -1,16 +1,20 @@
-import { HttpService, Injectable } from '@nestjs/common';
-import { AxiosResponse, AxiosRequestConfig } from 'axios';
-import { Observable, of, empty, interval, from } from 'rxjs';
-import { map, expand, concatMap, catchError, mapTo, switchMap, takeWhile, takeLast, tap } from 'rxjs/operators';
+import { HttpException, HttpService, Injectable } from '@nestjs/common';
 
-import { TokenService } from '../token/token.service';
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { empty, from, interval, Observable, of } from 'rxjs';
+import {
+  catchError, concatMap, expand, map, mapTo, switchMap, takeLast, takeWhile, tap
+} from 'rxjs/operators';
+
 import { ConfigService } from '../config/config.service';
-
-import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
-import { GitHubUser } from '../interfaces/git-hub-user.interface';
 import { GitHubProject } from '../interfaces/git-hub-project.interface';
 import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
+import { GitHubUser } from '../interfaces/git-hub-user.interface';
+import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
+import { TokenService } from '../token/token.service';
 
+import debugModule = require('debug');
+const debug = debugModule('kdo:github');
 const redirectUri = '/index.html';
 const scope = 'repo read:user user:email';
 
@@ -225,24 +229,38 @@ export class GithubService {
       return of(null);
     }
 
-    return this.httpService
-      .post(`https://api.github.com/repos/${owner}/${repoName}/pulls`, null, {
-        headers: { authorization: token },
-        data: {
-          title,
-          head,
-          base,
-          body: description,
-        },
-      })
-      .pipe(
-        map(result => ({
-          'number': result.data.number,
-          url: result.data.url,
-          state: result.data.state,
-        })),
-        catchError(err => { throw err.response.data.errors; }),
-      );
+    return this.pullRequestExists(token, owner, repoName, head).pipe(
+      catchError(err => {
+        if (err.status === 404) {
+          return of(0);
+        }
+        throw err.response.data.errors;
+      }),
+      switchMap(prNumber => {
+        if (prNumber > 0) {
+          return this.pullRequestDetails(token, owner, repoName, prNumber);
+        }
+        return this.httpService
+          .post(`https://api.github.com/repos/${owner}/${repoName}/pulls`, null, {
+            headers: { authorization: token },
+            data: {
+              title,
+              head,
+              base,
+              body: description,
+            },
+          })
+          .pipe(
+            map(result => ({
+              'number': result.data.number,
+              url: result.data.html_url,
+              state: result.data.state,
+              action: 'created',
+            })),
+            catchError(err => { throw err.response.data.errors; }),
+          );
+      }),
+    );
   }
 
   public listPullRequests(
@@ -268,6 +286,36 @@ export class GithubService {
       );
   }
 
+  // Checks if a pull request exists in repoName from the given user and branchname
+  public pullRequestExists(
+    token: string, // the token used to authorize with GitHub
+    owner: string, // owner of the repo whose PRs to list
+    repoName: string, // name of the repo
+    sourceRef: string, // source user and branch (user:branchname) to check
+  ): Observable<number> { // Returns -1 if PR doesn't exist, or PR#
+    if (token == null || token.length === 0) {
+      return of(null);
+    }
+
+    return this.httpService
+      .get(`https://api.github.com/repos/${owner}/${repoName}/pulls?state=open&head=${sourceRef}`, {
+        headers: {
+          'authorization': token,
+          'Content-Type': 'application/json',
+        },
+      })
+      .pipe(
+        catchError(err => { throw err.response.data.errors; }),
+        map(result => result.data),
+        map((pullRequests: GitHubPullRequest[]) => {
+          if (pullRequests.length > 0) {
+            return pullRequests[0].number;
+          }
+          throw new HttpException('Pull request does not exist', 404);
+        }),
+      );
+  }
+
   public closePullRequest(
     token: string, // the token used to authorize with GitHub
     owner: string, // owner of the repo whose PRs to list
@@ -288,8 +336,37 @@ export class GithubService {
       .pipe(
         map(result => ({
           'number': result.data.number,
-          url: result.data.url,
+          url: result.data.html_url,
           state: result.data.state,
+          action: 'closed',
+        })),
+      );
+  }
+
+  public pullRequestDetails(
+    token: string, // the token used to authorize with GitHub
+    owner: string, // owner of the repo whose PRs to list
+    repoName: string, // name of the repo
+    prNumber: number, // PR#
+  ): Observable<GitHubPullRequest> {
+    if (token == null || token.length === 0) {
+      return of(null);
+    }
+
+    return this.httpService
+      .get(`https://api.github.com/repos/${owner}/${repoName}/pulls/${prNumber}`, {
+        headers: {
+          'authorization': token,
+          'Content-Type': 'application/json',
+        },
+      })
+      .pipe(
+        catchError(err => { throw err.response.data.errors; }),
+        map(result => ({
+          'number': result.data.number,
+          url: result.data.html_url,
+          state: result.data.state,
+          action: 'existing',
         })),
       );
   }

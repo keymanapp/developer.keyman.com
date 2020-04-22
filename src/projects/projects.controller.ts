@@ -1,16 +1,18 @@
-import { Controller, Get, Headers, Session, Post, Param, Put } from '@nestjs/common';
-import { Observable, forkJoin } from 'rxjs';
-import { map, toArray, filter, switchMap, last, tap } from 'rxjs/operators';
+import { Controller, Get, Headers, Param, Post, Put, Session } from '@nestjs/common';
+
+import { forkJoin, Observable } from 'rxjs';
+import { filter, last, map, switchMap, tap, toArray } from 'rxjs/operators';
+
+import { BackendProjectService } from '../backend-project/backend-project.service';
+import { ConfigService } from '../config/config.service';
+import { GitService } from '../git/git.service';
+import { GithubService } from '../github/github.service';
+import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
+import { PullRequestService } from '../pull-request/pull-request.service';
+
 import path = require('path');
 import debugModule = require('debug');
 const debug = debugModule('kdo:projects');
-
-import { GithubService } from '../github/github.service';
-import { BackendProjectService } from '../backend-project/backend-project.service';
-import { ConfigService } from '../config/config.service';
-import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
-import { PullRequestService } from '../pull-request/pull-request.service';
-import { GitService } from '../git/git.service';
 
 interface Project { name: string; repoUrl?: string }
 
@@ -116,12 +118,13 @@ export class ProjectsController {
     @Param() params,
   ): Observable<GitHubPullRequest> {
     const head = `${session.login}:${session.login}-${params.repo}`;
+    const singleKbRepoPath = path.join(
+      this.configService.workDirectory,
+      session.login,
+      params.repo);
     debug(`createPullRequest for ${params.repo}`);
     return this.pullRequestService
-      .transferChanges(
-        path.join(this.configService.workDirectory, session.login, params.repo),
-        this.backendService.localKeyboardsRepo,
-      )
+      .transferChanges(singleKbRepoPath, this.backendService.localKeyboardsRepo)
       .pipe(
         last(),
         tap(() => debug(`pushing changes in ${this.backendService.localKeyboardsRepo}`)),
@@ -130,6 +133,24 @@ export class ProjectsController {
             this.backendService.localKeyboardsRepo,
             session.login,
             `${session.login}-${params.repo}`,
+            token,
+          ),
+        ),
+        tap(() => debug(`pushing KDO notes in ${this.backendService.localKeyboardsRepo}`)),
+        switchMap(() =>
+          this.gitService.push(
+            this.backendService.localKeyboardsRepo,
+            session.login,
+            'refs/notes/kdo',
+            token,
+          ),
+        ),
+        tap(() => debug(`pushing KDO notes in ${singleKbRepoPath}`)),
+        switchMap(() =>
+          this.gitService.push(
+            singleKbRepoPath,
+            session.login,
+            'refs/notes/kdo',
             token,
           ),
         ),
@@ -143,5 +164,15 @@ export class ProjectsController {
           ),
         ),
       );
+  }
+
+  @Get(':repo')
+  public getPullRequest(
+    @Session() session: any,
+    @Headers('authorization') token: string,
+    @Param() params,
+  ): Observable<GitHubPullRequest> {
+    const head = `${session.login}:${session.login}-${params.repo}`;
+    return this.pullRequestService.getPullRequestOnKeyboardsRepo(token, head);
   }
 }
