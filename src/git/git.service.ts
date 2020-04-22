@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { Observable, from, throwError, of } from 'rxjs';
-import { map, flatMap, takeLast, switchMap, mapTo, catchError, tap } from 'rxjs/operators';
+
+import { from, Observable, of, throwError } from 'rxjs';
+import { catchError, flatMap, map, mapTo, switchMap, takeLast, tap } from 'rxjs/operators';
 import * as simplegit from 'simple-git/promise';
-import { CommitSummary, FetchResult, PullResult, Options } from 'simple-git/promise';
-import { ListLogSummary, DefaultLogFields, BranchSummary } from 'simple-git/typings/response';
+import { CommitSummary, FetchResult, Options, PullResult } from 'simple-git/promise';
+import { BranchSummary, DefaultLogFields, ListLogSummary } from 'simple-git/typings/response';
+
+import { fileExists, mkdir } from '../utils/file';
 
 import path = require('path');
 import debugModule = require('debug');
 const debug = debugModule('debug');
 const trace = debugModule('kdo:git');
-
-import { mkdir, fileExists } from '../utils/file';
-import { exec } from '../utils/child-process';
 
 const gitKdoUserName = 'Keyman Developer Online';
 const gitKdoEmail = 'kdo@example.com';
@@ -205,7 +205,8 @@ export class GitService {
     branch: string,
     token: string,
   ): Observable<void> {
-    trace(`cd ${repoDir} && git -c http.extraheader="Authorization: ${token}" push ${remote} ${branch}`);
+    if (token.startsWith('Basic')) {
+      // Used in e2e tests
     return from(this.git.cwd(repoDir)).pipe(
       switchMap(() => this.git.raw([
         '-c',
@@ -214,7 +215,24 @@ export class GitService {
         remote,
         branch,
       ])),
-      // catchError(() => of(0)),
+        catchError(() => { trace('got error in push'); return of(0); }),
+        tap(() => trace('push finished')),
+        map(() => {
+          return;
+        }),
+      );
+    }
+    return from(this.git.cwd(repoDir)).pipe(
+      switchMap(() => from(this.git.raw(['config', `remote.${remote}.url`]))),
+      switchMap(urlString => {
+        if (urlString.startsWith('http')) {
+          const url = new URL(urlString);
+          return of(`${url.protocol}//x-access-token:${token.replace('token ', '')}@${url.host}${url.pathname}`);
+        } else {
+          return of(remote);
+        }
+      }),
+      switchMap(remoteUrl => from(this.git.push(remoteUrl, branch))),
       catchError(() => { trace('got error in push'); return of(0); }),
       tap(() => trace('push finished')),
       map(() => {
