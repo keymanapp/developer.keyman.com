@@ -238,8 +238,10 @@ export class GithubService {
       }),
       switchMap(prNumber => {
         if (prNumber > 0) {
+          debug(`PR #${prNumber} exists, updating...`);
           return this.pullRequestDetails(token, owner, repoName, prNumber);
         }
+        debug('no existing PR, creating one...');
         return this.httpService
           .post(`https://api.github.com/repos/${owner}/${repoName}/pulls`, null, {
             headers: { authorization: token },
