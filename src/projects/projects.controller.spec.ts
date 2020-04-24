@@ -1,22 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ProjectsController } from './projects.controller';
+import { HttpException } from '@nestjs/common';
 import { HttpModule } from '@nestjs/common/http';
-import { of, empty } from 'rxjs';
+import { Test, TestingModule } from '@nestjs/testing';
+
+import { empty, of } from 'rxjs';
 import { map } from 'rxjs/operators';
+
+import { BackendProjectModule } from '../backend-project/backend-project.module';
+import { ConfigModule } from '../config/config.module';
+import { ConfigService } from '../config/config.service';
+import { GitService } from '../git/git.service';
+import { GithubService } from '../github/github.service';
+import { PullRequestService } from '../pull-request/pull-request.service';
+import { TokenService } from '../token/token.service';
+import { deleteFolderRecursive } from '../utils/delete-folder';
+import { ProjectsController } from './projects.controller';
 
 import fs = require('fs');
 import os = require('os');
 import path = require('path');
-
-import { GithubService } from '../github/github.service';
-import { ConfigModule } from '../config/config.module';
-import { ConfigService } from '../config/config.service';
-import { TokenService } from '../token/token.service';
-import { GitService } from '../git/git.service';
-import { deleteFolderRecursive } from '../utils/delete-folder';
-import { BackendProjectModule } from '../backend-project/backend-project.module';
-import { PullRequestService } from '../pull-request/pull-request.service';
-
 describe('Projects Controller', () => {
   let sut: ProjectsController;
   let githubService: GithubService;
@@ -36,6 +37,10 @@ describe('Projects Controller', () => {
             getRepos: jest.fn(() => true),
             forkRepo: jest.fn(() => of({ name: 'foo' })),
             createPullRequest: jest.fn(() => of()),
+            pullRequestExists: jest.fn(() => {
+              throw new HttpException('Pull request does not exist', 404);
+            }),
+            pullRequestDetails: jest.fn(() => of()),
           }),
         },
         GitService,
@@ -291,6 +296,7 @@ describe('Projects Controller', () => {
           url:
             'https://api.github.com/repos/keymanapp/keyboards/pulls/42',
           state: 'open',
+          action: 'created',
         }));
 
       // Execute
