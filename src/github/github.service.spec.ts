@@ -1,12 +1,13 @@
 import { HttpService } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { AxiosResponse } from 'axios';
-import { of, throwError, Scheduler, VirtualTimeScheduler } from 'rxjs';
+import { of, Scheduler, throwError, VirtualTimeScheduler } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 import { ConfigModule } from '../config/config.module';
-import { GithubService } from './github.service';
 import { TokenService } from '../token/token.service';
+import { GithubService } from './github.service';
 
 describe('GitHub Service', () => {
   const projectFromGitHub = {
@@ -413,9 +414,18 @@ describe('GitHub Service', () => {
       // Setup
       expect.assertions(2);
 
-      const result: AxiosResponse = {
+      const result1: AxiosResponse = {
         data: {
-          url: 'https://api.github.com/repos/keymanapp/keyboards/pulls/1347',
+          errors: {}
+        },
+        status: 404,
+        statusText: 'Not found',
+        headers: {},
+        config: {},
+      };
+      const result2: AxiosResponse = {
+        data: {
+          'html_url': 'https://github.com/keymanapp/keyboards/pulls/1347',
           'number': 1347,
           state: 'open',
           locked: true,
@@ -427,7 +437,8 @@ describe('GitHub Service', () => {
         headers: {},
         config: {},
       };
-      jest.spyOn(spyHttpService, 'post').mockImplementationOnce(() => of(result));
+      jest.spyOn(spyHttpService, 'get').mockImplementationOnce(() => of(result1));
+      jest.spyOn(spyHttpService, 'post').mockImplementationOnce(() => of(result2));
 
       // Execute
       const pullRequest = await sut.createPullRequest(
@@ -456,9 +467,10 @@ describe('GitHub Service', () => {
         },
       );
       expect(pullRequest).toEqual({
-        url: 'https://api.github.com/repos/keymanapp/keyboards/pulls/1347',
+        url: 'https://github.com/keymanapp/keyboards/pulls/1347',
         'number': 1347,
         state: 'open',
+        action: 'created',
       });
     });
   });
