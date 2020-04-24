@@ -17,6 +17,14 @@
   margin: 6px;
 }
 
+.header a:link {
+  color: black;
+}
+
+.header a:visited {
+  color: black;
+}
+
 .content {
   app-user {
     visibility: hidden;
