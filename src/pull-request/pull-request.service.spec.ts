@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { ConfigModule } from '../config/config.module';
+import { ConfigService } from '../config/config.service';
+import { GitService } from '../git/git.service';
+import { GithubModule } from '../github/github.module';
+import { deleteFolderRecursive } from '../utils/delete-folder';
+import { PullRequestService } from './pull-request.service';
+
 import fs = require('fs');
 import os = require('os');
 import path = require('path');
 import debugModule = require('debug');
 const debug = debugModule('kdo:pullRequestTests');
-
-import { GitService } from '../git/git.service';
-import { ConfigService } from '../config/config.service';
-import { ConfigModule } from '../config/config.module';
-import { GithubModule } from '../github/github.module';
-import { deleteFolderRecursive } from '../utils/delete-folder';
-import { PullRequestService } from './pull-request.service';
 
 describe('PullRequestService', () => {
   let sut: PullRequestService;
@@ -544,20 +544,23 @@ index 0000000..4d3b8c1
       expect(keyboardsNote.message).toBe(`KDO imported from ${singleKbNote.commitSha}`);
     });
 
-    it('succeeds when there are no new changes', async () => {
-      expect.assertions(1);
+    it('throws an error when there are no new changes', async () => {
+      expect.assertions(2);
       await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
 
       // Execute
-      const result = await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
-
-      // Verify
-      expect(result).toBe(null);
+      try {
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      } catch (e) {
+        // Verify
+        expect(e.message).toEqual('No new changes on the single-keyboard repo.');
+        expect(e.status).toEqual(304);
+      }
     });
 
     it('throws an error when it encounters force-pushes on single kb repo', async () => {
       // Setup
-      expect.assertions(1);
+      expect.assertions(2);
       await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
       const logs = await gitService.log(singleKeyboardRepo, { '-1': null }).toPromise();
       const commitOfFirstTransfer = logs.latest.hash;
@@ -575,17 +578,35 @@ index 0000000..4d3b8c1
       await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
       await gitService.commit(singleKeyboardRepo, 'New third commit').toPromise();
 
-      // Execute/Verify
+      // Execute
       try {
         await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
       } catch (e) {
+        // Verify
         expect(e.message).toMatch(/Non-linear history. Force-push is not allowed./);
+        expect(e.status).toEqual(400);
+      }
+    });
+
+    it('throws an error with force-push on single kb repo if no other notes available', async () => {
+      // Setup
+      expect.assertions(2);
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      await gitService.commit(singleKeyboardRepo, 'New second commit', { '--amend': null }).toPromise();
+
+      // Execute
+      try {
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      } catch (e) {
+        // Verify
+        expect(e.message).toMatch(/Non-linear history. Force-push is not allowed./);
+        expect(e.status).toEqual(400);
       }
     });
 
     it('throws an error when it encounters new changes on keyboards repo', async () => {
       // Setup
-      expect.assertions(1);
+      expect.assertions(2);
       await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
 
       // Add third commit on keyboardsRepo
@@ -594,11 +615,13 @@ index 0000000..4d3b8c1
       await gitService.addFile(keyboardsRepo, filePath1).toPromise();
       await gitService.commit(keyboardsRepo, 'Third commit').toPromise();
 
-      // Execute/Verify
+      // Execute
       try {
         await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
       } catch (e) {
+        // Verify
         expect(e.message).toMatch(/Keyboards repo has new changes. This is not allowed./);
+        expect(e.status).toEqual(409);
       }
     });
   });

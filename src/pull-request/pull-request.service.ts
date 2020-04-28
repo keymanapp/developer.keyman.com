@@ -1,7 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common';
 
-import { forkJoin, Observable, of, throwError } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { forkJoin, Observable } from 'rxjs';
+import { map, switchMap, tap } from 'rxjs/operators';
 
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
@@ -56,20 +56,16 @@ export class PullRequestService {
       tap(head => keyboardsHead = head),
       switchMap(() => this.gitService.readLastNote(keyboardsRepoPath)),
       map(keyboardsNoteInfo => {
-        if (
-          (new RegExp(`KDO.+${keyboardsNoteInfo.commitSha}$`).exec(singleKbNoteInfo.message) == null ||
-            new RegExp(`KDO.+${singleKbNoteInfo.commitSha}$`).exec(keyboardsNoteInfo.message) == null) &&
-          singleKbNoteInfo.message !== '' && keyboardsNoteInfo.message !== ''
-        ) {
-          throw new Error('Non-linear history. Force-push is not allowed.');
+        if (keyboardsHead !== keyboardsNoteInfo.commitSha && keyboardsNoteInfo.commitSha !== '') {
+          throw new HttpException('Keyboards repo has new changes. This is not allowed.', 409);
         }
 
-        if (keyboardsHead !== keyboardsNoteInfo.commitSha && keyboardsNoteInfo.commitSha !== '') {
-          throw new Error('Keyboards repo has new changes. This is not allowed.');
+        if (this.hasNonLinearHistory(singleKbNoteInfo, keyboardsNoteInfo)) {
+          throw new HttpException('Non-linear history in single-keyboard repo. Force-push is not allowed.', 400);
         }
 
         if (singleKbHead === singleKbNoteInfo.commitSha) {
-          throw new Error('no new changes');
+          throw new HttpException('No new changes in the single-keyboard repo.', 304);
         }
       }),
     // NOTE: I don't understand why I need this pipe() here. But without it it shows an error,
@@ -94,13 +90,24 @@ export class PullRequestService {
         exportedCommitInSingleKbRepo,
         importedCommitInKeyboardsRepo),
       ),
-      catchError(err => {
-        if (!err.message.match(/no new changes/)) {
-          return throwError(new Error(err));
-        }
-        return of(null);
-      }),
     );
+  }
+
+  private hasNonLinearHistory(
+    singleKbNoteInfo: { commitSha: string; message: string },
+    keyboardsNoteInfo: { commitSha: string; message: string },
+  ): boolean {
+    if (
+      (new RegExp(`KDO.+${keyboardsNoteInfo.commitSha}$`).exec(singleKbNoteInfo.message) == null ||
+        new RegExp(`KDO.+${singleKbNoteInfo.commitSha}$`).exec(keyboardsNoteInfo.message) == null) &&
+      singleKbNoteInfo.message !== '' && keyboardsNoteInfo.message !== ''
+    ) {
+      return true;
+    }
+    if (!singleKbNoteInfo.commitSha && keyboardsNoteInfo.commitSha) {
+      return true;
+    }
+    return false;
   }
 
   public extractPatches(localRepo: string): Observable<[string, string[]]> {

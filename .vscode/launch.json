@@ -22,14 +22,12 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug e2e tests",
+      "name": "Debug e2e tests (backend)",
       "program": "${workspaceRoot}/node_modules/.bin/jest",
       "args": ["--runInBand", "--config", "./test/jest-e2e.json", "--verbose"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "test",
-        "TEST_GITHUB_TOKEN": "Insert your personal access token from GitHub",
-        "TEST_GITHUB_USER": "Insert your GitHub account name for testing"
       },
       "sourceMaps": true,
       "runtimeArgs": ["-r", "tsconfig-paths/register", "-r", "ts-node/register"]

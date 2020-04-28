@@ -208,13 +208,13 @@ export class GitService {
     if (token.startsWith('Basic')) {
       // Used in e2e tests
     return from(this.git.cwd(repoDir)).pipe(
-      switchMap(() => this.git.raw([
+      switchMap(() => from(this.git.raw([
         '-c',
         `http.extraheader=Authorization: ${token}`,
         'push',
         remote,
         branch,
-      ])),
+      ]))),
         catchError(() => { trace('got error in push'); return of(0); }),
         tap(() => trace('push finished')),
         map(() => {
@@ -244,9 +244,10 @@ export class GitService {
   public fetch(
     repoDir: string,
     remote: string,
-    remoteBranch: string,
+    remoteBranch?: string,
   ): Observable<FetchResult> {
     return from(this.git.cwd(repoDir)).pipe(
+      tap(() => trace(`${repoDir}: git fetch ${remote} ${remoteBranch}`)),
       switchMap(() => from(this.git.fetch(remote, remoteBranch))),
     );
   }
@@ -258,6 +259,7 @@ export class GitService {
   ): Observable<PullResult> {
     if (remote) {
       return from(this.git.cwd(repoDir)).pipe(
+        tap(() => trace(`${repoDir}: git pull ${remote} ${branch}`)),
         switchMap(() => from(this.git.pull(remote, branch))),
       );
     }

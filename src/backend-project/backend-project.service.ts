@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
+
 import { Observable, of } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
-import fs = require('fs');
-import path = require('path');
-import debugModule = require('debug');
-const debug = debugModule('kdo:backendProject');
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
 import { fileExists } from '../utils/file';
+
+import fs = require('fs');
+import path = require('path');
+import debugModule = require('debug');
+const debug = debugModule('kdo:backendProject');
 
 @Injectable()
 export class BackendProjectService {
@@ -67,8 +69,18 @@ export class BackendProjectService {
           // add remote and fetch repo
           return this.addRemoteAndFetchRepo(localRepo, remoteRepo, remoteName, remoteBranch);
         }
-        debug(`yep - we have remote ${remoteName}; fetching branch ${remoteBranch} of ${localRepo} from ${remoteName}`);
-        return this.gitService.fetch(localRepo, remoteName, remoteBranch).pipe(
+        debug(`yep - we have remote ${remoteName}; fetching ${localRepo} and pulling branch ${localBranch} from ${remoteName}`);
+        return this.gitService.fetch(localRepo, remoteName).pipe(
+          switchMap(() => this.gitService.pull(localRepo, remoteName, localBranch).pipe(
+            tap(result => debug(`pulled ${result.summary.changes} changes, ${result.summary.deletions} deletions, ${result.summary.insertions} insertions`)),
+          )),
+          catchError(err => {
+            // this can happen when running e2e tests
+            if (err.message.indexOf(`couldn't find remote ref ${localBranch}`) >= 0) {
+              return this.gitService.fetch(localRepo, remoteName, remoteBranch);
+            }
+            throw err;
+          }),
           map(() => { return; }),
         );
       }),

@@ -1,6 +1,6 @@
-import { Controller, Get, Headers, Param, Post, Put, Session } from '@nestjs/common';
+import { Controller, Get, Headers, HttpCode, Param, Post, Put, Session } from '@nestjs/common';
 
-import { forkJoin, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { filter, last, map, switchMap, tap, toArray } from 'rxjs/operators';
 
 import { BackendProjectService } from '../backend-project/backend-project.service';
@@ -48,6 +48,7 @@ export class ProjectsController {
   }
 
   @Post(':repo')
+  @HttpCode(201)
   public createRepo(
     @Session() session: any,
     @Headers('authorization') token: string,
@@ -79,12 +80,22 @@ export class ProjectsController {
       map(project => ({ name: params.repo, repoUrl: project })),
     );
 
+    return createKeyboardsRepo.pipe(
+      switchMap(() => createSingleProject),
+    );
+
+    /*
+    * Originally I had the code below. However, that causes problems when updating existing
+    * repos - git commands get queued, and for whatever reason it returned before all git
+    * commands were executed, leaving us with an outdated local repo.
+
     return forkJoin({
       result1: createSingleProject,
       result2: createKeyboardsRepo,
     }).pipe(
       map((obj) => obj.result1),
     );
+    */
   }
 
   private forkCloneAndUpdateProject(
@@ -112,6 +123,7 @@ export class ProjectsController {
   }
 
   @Put(':repo')
+  @HttpCode(201)
   public createPullRequest(
     @Session() session: any,
     @Headers('authorization') token: string,
