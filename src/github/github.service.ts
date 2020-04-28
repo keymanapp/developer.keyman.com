@@ -253,6 +253,7 @@ export class GithubService {
             },
           })
           .pipe(
+            tap(result => debug(`created PR #${result.data.number}`)),
             map(result => ({
               'number': result.data.number,
               url: result.data.html_url,
