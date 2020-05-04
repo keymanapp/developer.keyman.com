@@ -71,9 +71,7 @@ export class BackendProjectService {
         }
         debug(`yep - we have remote ${remoteName}; fetching ${localRepo} and pulling branch ${localBranch} from ${remoteName}`);
         return this.gitService.fetch(localRepo, remoteName).pipe(
-          switchMap(() => this.gitService.pull(localRepo, remoteName, localBranch).pipe(
-            tap(result => debug(`pulled ${result.summary.changes} changes, ${result.summary.deletions} deletions, ${result.summary.insertions} insertions`)),
-          )),
+          switchMap(() => this.gitService.pull(localRepo, remoteName, localBranch)),
           catchError(err => {
             // this can happen when running e2e tests
             if (err.message.indexOf(`couldn't find remote ref ${localBranch}`) >= 0) {
