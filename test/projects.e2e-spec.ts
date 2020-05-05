@@ -229,6 +229,8 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     closeAllPullRequests().pipe(
       catchError(() => empty()),
     ).subscribe(
+      next => debug(`afterEach next: ${next}`),
+      err => debug(`afterEach error: ${err}`),
       () => done(),
     ).add(
       cleanKeyboardsRepo().pipe(
