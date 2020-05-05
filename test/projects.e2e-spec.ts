@@ -176,6 +176,9 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
   }
 
   beforeAll(async () => {
+    if (!canRunTheseTests()) {
+      return;
+    }
     jest.setTimeout(60000 /* 60s */);
     jest.useRealTimers();
     const accessToken = process.env.TEST_GITHUB_TOKEN;
@@ -216,6 +219,9 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
   });
 
   afterAll(async () => {
+    if (!canRunTheseTests()) {
+      return;
+    }
     deleteFolderRecursive(tmpWorkDir);
     await app.close();
   });
@@ -286,7 +292,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     });
   });
 
-  fdescribe('create PR: /api/projects/ (PUT)', () => {
+  describe('create PR: /api/projects/ (PUT)', () => {
     let cloneDir: string;
     let tmpDir: string;
 
