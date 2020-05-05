@@ -553,7 +553,7 @@ index 0000000..4d3b8c1
         await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
       } catch (e) {
         // Verify
-        expect(e.message).toEqual('No new changes on the single-keyboard repo.');
+        expect(e.message).toEqual('No new changes in the single-keyboard repo.');
         expect(e.status).toEqual(304);
       }
     });
@@ -583,7 +583,7 @@ index 0000000..4d3b8c1
         await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
       } catch (e) {
         // Verify
-        expect(e.message).toMatch(/Non-linear history. Force-push is not allowed./);
+        expect(e.message).toMatch(/Non-linear history in single-keyboard repo. Force-push is not allowed./);
         expect(e.status).toEqual(400);
       }
     });
@@ -599,7 +599,7 @@ index 0000000..4d3b8c1
         await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
       } catch (e) {
         // Verify
-        expect(e.message).toMatch(/Non-linear history. Force-push is not allowed./);
+        expect(e.message).toMatch(/Non-linear history in single-keyboard repo. Force-push is not allowed./);
         expect(e.status).toEqual(400);
       }
     });
