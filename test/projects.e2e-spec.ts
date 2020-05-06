@@ -51,10 +51,6 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     // sometimes returned too early. I wasn't able to figure out why or how to prevent this.
     // Instead we directly call git for the test setup. If we discover that similar problems
     // happen in production code we might have to replace simple-git with something else.
-    if (process.env.TEAMCITY_GIT_PATH) {
-    return execSync(`"${process.env.TEAMCITY_GIT_PATH}" ${command}`,
-      { cwd: dir, stdio: ['pipe', 'pipe', 'ignore'] }).toString();
-    }
     return execSync(`git ${command}`, { cwd: dir, stdio: ['pipe', 'pipe', 'ignore'] }).toString();
   }
 
