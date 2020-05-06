@@ -620,7 +620,7 @@ index 0000000..4d3b8c1
         await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
       } catch (e) {
         // Verify
-        expect(e.message).toMatch(/Keyboards repo has new changes. This is not allowed./);
+        expect(e.message).toMatch(/Keyboards repo has new changes in the single-keyboard directory. This is not allowed./);
         expect(e.status).toEqual(409);
       }
     });
