@@ -52,6 +52,8 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     // Instead we directly call git for the test setup. If we discover that similar problems
     // happen in production code we might have to replace simple-git with something else.
     if (process.env.TEAMCITY_GIT_PATH) {
+      debug(`dir "${process.env.TEAMCITY_GIT_PATH}":` + execSync(`dir "${process.env.TEAMCITY_GIT_PATH}"`).toString());
+      debug(`dir "${dir}": ` + execSync(`dir "${dir}"`).toString());
       return execSync(`"${process.env.TEAMCITY_GIT_PATH}" ${command} 2> /dev/null`, { cwd: dir }).toString();
     }
     return execSync(`git ${command} 2> /dev/null`, { cwd: dir }).toString();
