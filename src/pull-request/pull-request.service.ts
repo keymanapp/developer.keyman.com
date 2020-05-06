@@ -57,7 +57,7 @@ export class PullRequestService {
       switchMap(() => this.gitService.readLastNote(keyboardsRepoPath)),
       map(keyboardsNoteInfo => {
         if (keyboardsHead !== keyboardsNoteInfo.commitSha && keyboardsNoteInfo.commitSha !== '') {
-          throw new HttpException('Keyboards repo has new changes. This is not allowed.', 409);
+          throw new HttpException('Keyboards repo has new changes in the single-keyboard directory. This is not allowed.', 409);
         }
 
         if (this.hasNonLinearHistory(singleKbNoteInfo, keyboardsNoteInfo)) {
