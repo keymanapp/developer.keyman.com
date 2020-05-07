@@ -304,7 +304,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
 
       // clone single keyboard repo
       git(`clone https://github.com/${user}/test_kdo_khmer_angkor ${cloneDir}`, tmpDir);
-      git('config --add remote.origin.fetch +refs/notes/*:refs/notes/*', cloneDir);
+      addDefaultConfiguration(cloneDir);
       git('fetch -p origin', cloneDir);
 
       // reset to backup branch and amend HEAD commit to remove git notes which might be there
@@ -318,13 +318,22 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
       git(`-c "http.extraheader=Authorization: ${token}" push --force origin master`, cloneDir);
     });
 
+    function addDefaultConfiguration(
+      repoDir: string
+    ): void {
+      git('config user.name "Keyman Developer Online e2e tests"', repoDir);
+      git('config user.email kdo@example.com', repoDir);
+      git('config commit.gpgSign false', repoDir);
+      git('config --add remote.origin.fetch +refs/notes/*:refs/notes/*', repoDir);
+    }
+
     async function cloneLocalKeyboardsRepo(): Promise<string> {
       const kbDir = path.join(tmpDir, configService.keyboardsRepoName);
 
       // clone keyboards repo
       if (!await fileExists(kbDir).toPromise()) {
         git(`clone https://github.com/${user}/${configService.keyboardsRepoName} ${kbDir}`, tmpDir);
-        git('config --add remote.origin.fetch +refs/notes/*:refs/notes/*', kbDir);
+        addDefaultConfiguration(kbDir);
       }
       git('fetch -p origin', kbDir);
       return kbDir;
