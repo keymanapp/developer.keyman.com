@@ -51,6 +51,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     // sometimes returned too early. I wasn't able to figure out why or how to prevent this.
     // Instead we directly call git for the test setup. If we discover that similar problems
     // happen in production code we might have to replace simple-git with something else.
+    debug(`running: 'git ${command}' in ${dir}`);
     return execSync(`git ${command}`, { cwd: dir, stdio: ['pipe', 'pipe', 'ignore'] }).toString();
   }
 
@@ -222,7 +223,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
     if (!canRunTheseTests()) {
       return;
     }
-    deleteFolderRecursive(tmpWorkDir);
+    // deleteFolderRecursive(tmpWorkDir);
     await app.close();
   });
 
@@ -249,7 +250,7 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
       ).subscribe()
     );
 
-    deleteLocalRepos();
+    // deleteLocalRepos();
   });
 
   describe('create project: /api/projects/ (POST)', () => {
