@@ -6,7 +6,7 @@ import {
   catchError, concatMap, expand, map, mapTo, switchMap, takeLast, takeWhile, tap
 } from 'rxjs/operators';
 
-import { UrlDto } from '../../dist/auth/model/url-dto';
+import { UrlDto } from '../auth/model/url-dto';
 import { ConfigService } from '../config/config.service';
 import { GitHubProject } from '../interfaces/git-hub-project.interface';
 import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
