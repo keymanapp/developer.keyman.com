@@ -1,6 +1,18 @@
-export class AccessTokenDto {
-         public error?: string;
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-         constructor(public readonly accessToken: string = '') {
-         }
-       }
+export class AccessTokenDto {
+  @ApiPropertyOptional({
+    description: 'The error that happened',
+  })
+  public error?: string;
+
+  @ApiProperty({
+    description: 'The access token which can be used to access GitHub APIs',
+    example: 'whatever',
+  })
+  public readonly accessToken: string;
+
+  constructor(token = '') {
+    this.accessToken = token;
+  }
+}
