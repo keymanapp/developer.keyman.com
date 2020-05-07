@@ -43,6 +43,8 @@ export class GitService {
       switchMap(() => from(this.git.addConfig('commit.gpgSign', 'false'))),
       switchMap(() => from(this.git.addConfig('core.whitespace',
         '-space-before-tab,-indent-with-no-tab,-tab-in-indent,-trailing-space'))),
+      switchMap(() => from(this.git.addConfig('branch.autsetupmerge', 'true'))),
+      switchMap(() => from(this.git.addConfig('branch.autsetuprebase', 'always'))),
       map(() => { return; }),
     );
   }
@@ -92,8 +94,11 @@ export class GitService {
     if (remoteName) {
       options.push(`--origin=${remoteName}`);
     }
+    if (!remoteName) {
+      remoteName = 'origin';
+    }
 
-    const notesRef = remoteName ? `remote.${remoteName}.fetch` : 'remote.origin.fetch';
+    const notesRef = `remote.${remoteName}.fetch`;
 
     trace(`clone remoteUrl: ${remoteUrl}, localPath: ${localPath}, options: ${options}`);
     const parentDir = path.dirname(localPath);
@@ -103,7 +108,7 @@ export class GitService {
       switchMap(() => from(this.git.cwd(localPath))),
       switchMap(() => this.addDefaultConfig()),
       switchMap(() => from(this.git.raw(['config', '--add', notesRef, '+refs/notes/*:refs/notes/*']))),
-      switchMap(() => from(this.git.fetch(remoteName ? remoteName : 'origin'))),
+      switchMap(() => from(this.git.fetch(remoteName))),
       mapTo(localPath),
     );
   }
