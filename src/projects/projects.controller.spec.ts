@@ -10,6 +10,8 @@ import { ConfigModule } from '../config/config.module';
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
 import { GithubService } from '../github/github.service';
+import { PrAction } from '../interfaces/pr-action.enum';
+import { PrState } from '../interfaces/pr-state.enum';
 import { PullRequestService } from '../pull-request/pull-request.service';
 import { TokenService } from '../token/token.service';
 import { deleteFolderRecursive } from '../utils/delete-folder';
@@ -295,8 +297,8 @@ describe('Projects Controller', () => {
           'number': 42,
           url:
             'https://api.github.com/repos/keymanapp/keyboards/pulls/42',
-          state: 'open',
-          action: 'created',
+          state: PrState.Open,
+          action: PrAction.Created,
         }));
 
       // Execute
