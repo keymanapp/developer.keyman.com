@@ -32,5 +32,6 @@
       "regex": "^[.]",
       "orderLevel": 40
     }
-  ],
+],
+"git.autofetch": true,
 }

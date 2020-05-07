@@ -1,11 +1,13 @@
-import { Controller, Get, Headers, HttpCode, Param, Post, Put, Session } from '@nestjs/common';
 import {
-  ApiBasicAuth, ApiHeader, ApiOAuth2, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags,
-  ApiUnauthorizedResponse, getSchemaPath
+  Body, Controller, Get, Headers, HttpCode, HttpException, Param, Post, Put, Session
+} from '@nestjs/common';
+import {
+  ApiBasicAuth, ApiBody, ApiHeader, ApiOAuth2, ApiOperation, ApiParam, ApiQuery, ApiResponse,
+  ApiTags, ApiUnauthorizedResponse, getSchemaPath
 } from '@nestjs/swagger';
 
-import { Observable } from 'rxjs';
-import { filter, last, map, switchMap, tap, toArray } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, filter, last, map, switchMap, tap, toArray } from 'rxjs/operators';
 
 import { BackendProjectService } from '../backend-project/backend-project.service';
 import { ConfigService } from '../config/config.service';
@@ -19,7 +21,7 @@ import path = require('path');
 import debugModule = require('debug');
 const debug = debugModule('kdo:projects');
 
-const prTitle = 'Add ${repo} keyboard';
+const prTitle = '[${repo}] Add ${repo} keyboard';
 const prDescription = 'Merge the single keyboard repo ${repo} into the keyboards repo. Courtesy of Keyman Developer Online.';
 
 @Controller('projects')
@@ -119,12 +121,12 @@ export class ProjectsController {
   public createRepo(
     @Session() session: any,
     @Headers('authorization') token: string,
-    @Param() params,
+    @Param('repo') repo: string,
   ): Observable<Project> {
-    const localRepo = this.backendService.getProjectRepo(session.login, params.repo);
-    const remoteRepo = `${this.gitHubUrl}/${session.login}/${params.repo}.git`;
+    const localRepo = this.backendService.getProjectRepo(session.login, repo);
+    const remoteRepo = `${this.gitHubUrl}/${session.login}/${repo}.git`;
 
-    debug(`In createRepo: login: ${session.login}, repo: ${params.repo}, localRepo: ${localRepo}, \\`);
+    debug(`In createRepo: login: ${session.login}, repo: ${repo}, localRepo: ${localRepo}, \\`);
     debug(`    remoteRepo: ${ remoteRepo }, branch: ${ this.backendService.branchName }`);
 
     const createSingleProject = this.backendService.cloneOrUpdateProject(
@@ -134,22 +136,41 @@ export class ProjectsController {
         session.login,
     ).pipe(
       tap(project => debug(`cloneOrUpdateProject(singleProj) created in ${project}`)),
-      map(() => ({
-        name: this.backendService.getKeyboardId(params.repo, localRepo),
-        repoUrl: remoteRepo,
-      })),
-    );
+   );
 
     const createKeyboardsRepo = this.forkCloneAndUpdateProject(
-      token, session.login, this.configService.keyboardsRepoName, params.repo, 'master',
+      token, session.login, this.configService.keyboardsRepoName, repo, 'master',
     ).pipe(
       tap(project => debug(`forkCloneAndUpdateProject(keyboards) created in ${project}`)),
-      map(project => ({ name: params.repo, repoUrl: project })),
     );
 
     return createKeyboardsRepo.pipe(
       switchMap(() => createSingleProject),
-    );
+      switchMap(() => this.githubService.pullRequestExists(
+        token,
+        this.configService.organizationName,
+        this.configService.keyboardsRepoName,
+        `${session.login}:${session.login}-${repo}`,
+      )),
+      catchError(() => of(false)),
+      switchMap(prExists => {
+        if (prExists) {
+          return this.pullRequestService.readLastNote(localRepo).pipe(
+            map(note => ({
+              name: note.noteInfo.keyboardName,
+              repoUrl: remoteRepo,
+              prefix: note.noteInfo.prefix,
+            })),
+          );
+        }
+        const keyboardId = this.backendService.getKeyboardId(repo, localRepo);
+        return of({
+          name: keyboardId,
+          repoUrl: remoteRepo,
+          prefix: this.pullRequestService.getPrefix(keyboardId, null),
+        } as Project) ;
+      }),
+     );
 
     /*
     * Originally I had the code below. However, that causes problems when updating existing
@@ -206,6 +227,10 @@ export class ProjectsController {
     type: 'string',
     description: 'The name of the single-keyboard GitHub repo',
   })
+  @ApiBody({
+    description: 'The project information',
+    type: Project,
+  })
   @ApiResponse({
     status: 201,
     description: 'Created',
@@ -221,26 +246,34 @@ export class ProjectsController {
     }
   })
   @ApiResponse({ status: 304, description: 'No new changes on the single-keyboard repo' })
+  @ApiResponse({ status: 400, description: 'Missing project data in request body'})
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({
-    status: 400,
+    status: 409,
+    description: 'Keyboards repo has new changes in the single-keyboard directory. This is not allowed.'
+  })
+  @ApiResponse({
+    status: 412,
     description: 'Non-linear history in single-keyboard repo. Force-push is not allowed.',
   })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @ApiResponse({ status: 409, description: 'Keyboards repo has new changes in the single-keyboard directory. This is not allowed.' })
   @HttpCode(201)
   public createPullRequest(
     @Session() session: any,
     @Headers('authorization') token: string,
-    @Param() params,
+    @Param('repo') repo: string,
+    @Body() project: Project,
   ): Observable<GitHubPullRequest> {
-    const head = `${session.login}:${session.login}-${params.repo}`;
+    if (!project || !project.name) {
+      throw new HttpException('Missing project data in request body', 400);
+    }
+    const head = `${session.login}:${session.login}-${repo}`;
     const singleKbRepoPath = path.join(
       this.configService.workDirectory,
       session.login,
-      params.repo);
-    debug(`createPullRequest for ${params.repo}`);
+      repo);
+    debug(`createPullRequest for ${repo}`);
     return this.pullRequestService
-      .transferChanges(singleKbRepoPath, this.backendService.localKeyboardsRepo)
+      .transferChanges(singleKbRepoPath, this.backendService.localKeyboardsRepo, project)
       .pipe(
         last(),
         tap(() => debug(`pushing changes in ${this.backendService.localKeyboardsRepo}`)),
@@ -248,7 +281,7 @@ export class ProjectsController {
           this.gitService.push(
             this.backendService.localKeyboardsRepo,
             session.login,
-            `${session.login}-${params.repo}`,
+            `${session.login}-${repo}`,
             token,
           ),
         ),
@@ -275,8 +308,8 @@ export class ProjectsController {
           this.pullRequestService.createPullRequestOnKeyboardsRepo(
             token,
             head,
-            prTitle.replace('${repo}', params.repo),
-            prDescription.replace('${repo}', params.repo),
+            prTitle.replace(/\${repo}/g, project.name),
+            prDescription.replace(/\${repo}/g, project.name),
           ),
         ),
       );

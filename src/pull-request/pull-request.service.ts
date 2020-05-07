@@ -1,15 +1,16 @@
 import { HttpException, Injectable } from '@nestjs/common';
 
 import { forkJoin, Observable } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
 import { GithubService } from '../github/github.service';
 import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
+import { Project } from '../interfaces/project.interface';
+import { TransferInfo } from '../interfaces/transfer-info';
 import { readFile, writeFile } from '../utils/file';
 
-import path = require('path');
 import debugModule = require('debug');
 const debug = debugModule('kdo:pullRequest');
 
@@ -21,7 +22,11 @@ export class PullRequestService {
     private readonly githubService: GithubService,
   ) {}
 
-  public transferChanges(singleKbRepoPath: string, keyboardsRepoPath: string): Observable<void> {
+  public transferChanges(
+    singleKbRepoPath: string,
+    keyboardsRepoPath: string,
+    project: Project,
+  ): Observable<void> {
     // Currently we only support importing changes from single-keyboard repo into keyboards
     // repo, not the other way round. We don't support non-linear history (force-push) either.
     // If we ever want to deal with force-pushes on either single-keyboard (s) or keyboards (k)
@@ -41,27 +46,31 @@ export class PullRequestService {
     //   - else (note is not on HEAD on both s and k):
     //     - Error: one changed, the other force-pushed. Can't deal with this automatically
 
+    if (!project || !project.name) {
+      throw new HttpException('Missing project data in request body', 400);
+    }
+
     let exportedCommitInSingleKbRepo: string;
-    let singleKbNoteInfo: { commitSha: string; message: string };
+    let singleKbNoteInfo: { commitSha: string; noteInfo: TransferInfo };
     let singleKbHead: string;
     let keyboardsHead: string;
 
     debug(`transferChanges from ${singleKbRepoPath} to ${keyboardsRepoPath}`);
 
-    return this.gitService.readLastNote(singleKbRepoPath).pipe(
+    return this.readLastNote(singleKbRepoPath).pipe(
       tap(noteInfo => singleKbNoteInfo = noteInfo),
       switchMap(() => this.gitService.getHeadCommit(singleKbRepoPath)),
       tap(head => singleKbHead = head),
       switchMap(() => this.gitService.getHeadCommit(keyboardsRepoPath)),
       tap(head => keyboardsHead = head),
-      switchMap(() => this.gitService.readLastNote(keyboardsRepoPath)),
+      switchMap(() => this.readLastNote(keyboardsRepoPath)),
       map(keyboardsNoteInfo => {
         if (keyboardsHead !== keyboardsNoteInfo.commitSha && keyboardsNoteInfo.commitSha !== '') {
           throw new HttpException('Keyboards repo has new changes in the single-keyboard directory. This is not allowed.', 409);
         }
 
         if (this.hasNonLinearHistory(singleKbNoteInfo, keyboardsNoteInfo)) {
-          throw new HttpException('Non-linear history in single-keyboard repo. Force-push is not allowed.', 400);
+          throw new HttpException('Non-linear history in single-keyboard repo. Force-push is not allowed.', 412);
         }
 
         if (singleKbHead === singleKbNoteInfo.commitSha) {
@@ -77,7 +86,7 @@ export class PullRequestService {
         const observables: Observable<string>[] = [];
         for (const patchFile of patchFiles) {
           debug(`converting ${patchFile}`);
-          observables.push(this.convertPatch(patchFile, path.basename(singleKbRepoPath)));
+          observables.push(this.convertPatch(patchFile, project.name, project.prefix));
         }
         return forkJoin(observables).pipe(
           tap(val => debug(val)),
@@ -88,19 +97,20 @@ export class PullRequestService {
         singleKbRepoPath,
         keyboardsRepoPath,
         exportedCommitInSingleKbRepo,
-        importedCommitInKeyboardsRepo),
+        importedCommitInKeyboardsRepo,
+        project),
       ),
     );
   }
 
   private hasNonLinearHistory(
-    singleKbNoteInfo: { commitSha: string; message: string },
-    keyboardsNoteInfo: { commitSha: string; message: string },
+    singleKbNoteInfo: { commitSha: string; noteInfo: TransferInfo },
+    keyboardsNoteInfo: { commitSha: string; noteInfo: TransferInfo },
   ): boolean {
     if (
-      (new RegExp(`KDO.+${keyboardsNoteInfo.commitSha}$`).exec(singleKbNoteInfo.message) == null ||
-        new RegExp(`KDO.+${singleKbNoteInfo.commitSha}$`).exec(keyboardsNoteInfo.message) == null) &&
-      singleKbNoteInfo.message !== '' && keyboardsNoteInfo.message !== ''
+      (new RegExp(`KDO.+${keyboardsNoteInfo.commitSha}$`).exec(singleKbNoteInfo.noteInfo.msg) == null ||
+        new RegExp(`KDO.+${singleKbNoteInfo.commitSha}$`).exec(keyboardsNoteInfo.noteInfo.msg) == null) &&
+      singleKbNoteInfo.noteInfo.msg !== '' && keyboardsNoteInfo.noteInfo.msg !== ''
     ) {
       return true;
     }
@@ -146,9 +156,10 @@ export class PullRequestService {
 
   public convertPatch(
     patchFile: string,
-    singleKbRepoName: string,
+    keyboardId: string,
+    prefix: string,
   ): Observable<string> {
-    const prefix = this.getNewPathPrefix(singleKbRepoName);
+    prefix = this.getNewPathPrefix(keyboardId, prefix);
     return readFile(patchFile).pipe(
       map(data => this.convertPatchFile(prefix, data.toString())),
       switchMap(content => writeFile(patchFile, content)),
@@ -156,9 +167,38 @@ export class PullRequestService {
     );
   }
 
-  private getNewPathPrefix(singleRepoName: string): string {
+  private getNewPathPrefix(keyboardId: string, prefix: string): string {
     // git uses / as directory separator, even on Windows
-    return `release/${singleRepoName.substring(0, 1)}/${singleRepoName}`;
+    return `release/${this.getPrefix(keyboardId, prefix)}/${keyboardId}`;
+  }
+
+  public getPrefix(keyboardId: string, prefix: string): string {
+    if (!keyboardId) {
+      return keyboardId;
+    }
+
+    if (prefix) {
+      return prefix;
+    }
+
+    const specialPrefixes = [
+      'basic',
+      'bj',
+      'el',
+      'fv',
+      'gff',
+      'itrans',
+      'nlci',
+      'nrc',
+      'rac',
+      'sil',
+    ];
+    for (const specialPrefix of specialPrefixes) {
+      if (keyboardId.startsWith(`${specialPrefix}_`)) {
+        return specialPrefix;
+      }
+    }
+    return keyboardId.substring(0, 1);
   }
 
   // Adjust the paths in the patch file to the location in the keyboards repo
@@ -209,18 +249,50 @@ export class PullRequestService {
     keyboardsRepoPath: string,
     commitOnSingleKbRepo: string,
     commitOnKeyboardsRepo: string,
+    project: Project,
+  ): Observable<void> {
+    const exportInfo = new TransferInfo(
+      `KDO exported to ${commitOnKeyboardsRepo}`,
+      project.prefix,
+      project.name,
+    );
+    const importInfo = new TransferInfo(
+      `KDO imported from ${commitOnSingleKbRepo}`,
+      project.prefix,
+      project.name,
+    );
+
+    return this.createNote(singleKbRepoPath, commitOnSingleKbRepo, exportInfo).pipe(
+      switchMap(() => this.createNote(keyboardsRepoPath, commitOnKeyboardsRepo, importInfo)),
+    );
+  }
+
+  public createNote(
+    localRepoPath: string,
+    commitOnRepo: string,
+    noteInfo: TransferInfo,
   ): Observable<void> {
     return this.gitService.createNote(
-      singleKbRepoPath,
-      commitOnSingleKbRepo,
-      `KDO exported to ${commitOnKeyboardsRepo}`)
-      .pipe(
-        switchMap(() => this.gitService.createNote(
-          keyboardsRepoPath,
-          commitOnKeyboardsRepo,
-          `KDO imported from ${commitOnSingleKbRepo}`),
-        ),
-      );
+      localRepoPath,
+      commitOnRepo,
+      JSON.stringify(noteInfo),
+    );
+  }
+
+  public readLastNote(
+    localRepoDir: string,
+  ): Observable<{ commitSha: string; noteInfo: TransferInfo }> {
+    return this.gitService.readLastNote(localRepoDir).pipe(
+      map(obj => {
+        try {
+          const noteInfo = obj.message ? JSON.parse(obj.message) : new TransferInfo('', '', '');
+          return { commitSha: obj.commitSha, noteInfo };
+        } catch(err) {
+          // Just ignore parse error
+          return { commitSha: '', noteInfo: new TransferInfo('', '', '') };
+        }
+      })
+    );
   }
 
   public getPullRequestOnKeyboardsRepo(
@@ -234,6 +306,7 @@ export class PullRequestService {
       this.config.keyboardsRepoName,
       head,
     ).pipe(
+      catchError(err => { debug(`no existing open PR for ${head}`); throw err}),
       tap(prNumber => {
         if (prNumber < 0) {
           debug(`no existing open PR for ${head}`);

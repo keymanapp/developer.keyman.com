@@ -177,7 +177,7 @@ describe('Projects Controller', () => {
       await createKeyboardsRepoForUser('foo', gitHubDir);
 
       // Execute
-      const project = await sut.createRepo(session, 'token 12345', { repo: 'remoteTestRepo' }).toPromise();
+      const project = await sut.createRepo(session, 'token 12345', 'remoteTestRepo').toPromise();
 
       // Verify
       // Should clone single-keyboards repo
@@ -186,6 +186,7 @@ describe('Projects Controller', () => {
       expect(project).toEqual({
         repoUrl: `${gitHubDir}/foo/remoteTestRepo.git`,
         name: 'remoteTestRepo',
+        prefix: 'r',
       });
 
       // Should clone keyboards repo
@@ -217,7 +218,7 @@ describe('Projects Controller', () => {
 
       // Execute
       const project = await sut
-        .createRepo(session, 'token 12345', { repo: 'remoteTestRepo' })
+        .createRepo(session, 'token 12345', 'remoteTestRepo')
         .toPromise();
 
       // Verify
@@ -227,6 +228,7 @@ describe('Projects Controller', () => {
       expect(project).toEqual({
         repoUrl: `${gitHubDir}/foo/remoteTestRepo.git`,
         name: 'remoteTestRepo',
+        prefix: 'r',
       });
 
       // should create fork of keyboards repo
@@ -305,7 +307,8 @@ describe('Projects Controller', () => {
       await sut.createPullRequest(
         session,
         'token 12345',
-        { repo: 'myKeyboard' },
+        'myKeyboard',
+        { name: 'myKeyboard' },
       ).toPromise();
 
       // Verify
@@ -332,7 +335,7 @@ describe('Projects Controller', () => {
         'keyboards',
         'jdoe:jdoe-myKeyboard',
         'master',
-        'Add myKeyboard keyboard',
+        '[myKeyboard] Add myKeyboard keyboard',
         'Merge the single keyboard repo myKeyboard into the keyboards repo. Courtesy of Keyman Developer Online.',
       );
     });

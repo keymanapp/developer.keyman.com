@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { map } from 'rxjs/operators';
+
 import { ConfigModule } from '../config/config.module';
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
 import { GithubModule } from '../github/github.module';
+import { TransferInfo } from '../interfaces/transfer-info';
 import { deleteFolderRecursive } from '../utils/delete-folder';
 import { PullRequestService } from './pull-request.service';
 
@@ -83,7 +86,7 @@ describe('PullRequestService', () => {
     it('can extract new patches since last import', async () => {
       // Setup
       expect.assertions(3);
-      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard'}).toPromise();
       const filePath1 = path.join(singleKeyboardRepo, 'somefile1.txt');
       fs.appendFileSync(filePath1, `${os.EOL}Text for the third commit`);
       await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
@@ -140,7 +143,7 @@ index c278a75..c048aca 100644
       );
 
       // Execute/Verify
-      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard', null).subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -218,7 +221,7 @@ index 095ee29..0000000
       );
 
       // Execute/Verify
-      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard', null).subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -294,7 +297,7 @@ index 0000000..c44fd7c
       );
 
       // Execute/Verify
-      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard', null).subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -358,7 +361,7 @@ rename to somefile3.txt
       );
 
       // Execute/Verify
-      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard', null).subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -410,7 +413,7 @@ rename to this/is/a/long/path/somefile3.txt
       );
 
       // Execute/Verify
-      sut.convertPatch(patchFileFullPath, 'myKeyboard').subscribe({
+      sut.convertPatch(patchFileFullPath, 'myKeyboard', null).subscribe({
         next: newPatchFile => {
           const data: string = fs.readFileSync(newPatchFile).toString();
           expect(data).toEqual(
@@ -435,6 +438,167 @@ rename to release/m/myKeyboard/this/is/a/long/path/somefile3.txt
         complete: () => done(),
       });
     });
+
+    it('adjusts the paths of modified files if prefix is specified', done => {
+      // Setup
+      expect.assertions(1);
+      const patchFile = '0001-Initial-commit.patch';
+      const patchFileFullPath = path.join(workDir, patchFile);
+      fs.appendFileSync(
+        patchFileFullPath,
+        /* #region source patch file */
+        `From 28132549f15a430017bbb6121813387f0f0f84b6 Mon Sep 17 00:00:00 2001
+From: Keyman Developer Online <kdo@example.com>
+Date: Wed, 4 Dec 2019 16:03:16 +0100
+Subject: [PATCH] Second commit
+
+---
+ dir1/file1.txt | 3 ++-
+ file1.txt      | 2 +-
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/dir1/file1.txt b/dir1/file1.txt
+index 24cf2db..52a21ff 100644
+--- a/dir1/file1.txt
++++ b/dir1/file1.txt
+@@ -1 +1,2 @@
+-This is file1 in dir1
++This is file1 in dir1.
++It has more text now.
+diff --git a/file1.txt b/file1.txt
+index c278a75..c048aca 100644
+--- a/file1.txt
++++ b/file1.txt
+@@ -1 +1 @@
+-This is file1
++This is file1 in root directory
+--
+2.24.0
+`,
+        /* #endregion */
+      );
+
+      // Execute/Verify
+      sut.convertPatch(patchFileFullPath, 'myKeyboard', 'xyz').subscribe({
+        next: newPatchFile => {
+          const data: string = fs.readFileSync(newPatchFile).toString();
+          expect(data).toEqual(
+            /* #region expected patch file */
+            `From 28132549f15a430017bbb6121813387f0f0f84b6 Mon Sep 17 00:00:00 2001
+From: Keyman Developer Online <kdo@example.com>
+Date: Wed, 4 Dec 2019 16:03:16 +0100
+Subject: [PATCH] Second commit
+
+---
+ release/xyz/myKeyboard/dir1/file1.txt | 3 ++-
+ release/xyz/myKeyboard/file1.txt      | 2 +-
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/release/xyz/myKeyboard/dir1/file1.txt b/release/xyz/myKeyboard/dir1/file1.txt
+index 24cf2db..52a21ff 100644
+--- a/release/xyz/myKeyboard/dir1/file1.txt
++++ b/release/xyz/myKeyboard/dir1/file1.txt
+@@ -1 +1,2 @@
+-This is file1 in dir1
++This is file1 in dir1.
++It has more text now.
+diff --git a/release/xyz/myKeyboard/file1.txt b/release/xyz/myKeyboard/file1.txt
+index c278a75..c048aca 100644
+--- a/release/xyz/myKeyboard/file1.txt
++++ b/release/xyz/myKeyboard/file1.txt
+@@ -1 +1 @@
+-This is file1
++This is file1 in root directory
+--
+2.24.0
+`,
+            /* #endregion */
+          );
+        },
+        complete: () => done(),
+      });
+    });
+
+    it('adjusts the paths of modified files for keyboard with special prefix', done => {
+      // Setup
+      expect.assertions(1);
+      const patchFile = '0001-Initial-commit.patch';
+      const patchFileFullPath = path.join(workDir, patchFile);
+      fs.appendFileSync(
+        patchFileFullPath,
+        /* #region source patch file */
+        `From 28132549f15a430017bbb6121813387f0f0f84b6 Mon Sep 17 00:00:00 2001
+From: Keyman Developer Online <kdo@example.com>
+Date: Wed, 4 Dec 2019 16:03:16 +0100
+Subject: [PATCH] Second commit
+
+---
+ dir1/file1.txt | 3 ++-
+ file1.txt      | 2 +-
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/dir1/file1.txt b/dir1/file1.txt
+index 24cf2db..52a21ff 100644
+--- a/dir1/file1.txt
++++ b/dir1/file1.txt
+@@ -1 +1,2 @@
+-This is file1 in dir1
++This is file1 in dir1.
++It has more text now.
+diff --git a/file1.txt b/file1.txt
+index c278a75..c048aca 100644
+--- a/file1.txt
++++ b/file1.txt
+@@ -1 +1 @@
+-This is file1
++This is file1 in root directory
+--
+2.24.0
+`,
+        /* #endregion */
+      );
+
+      // Execute/Verify
+      sut.convertPatch(patchFileFullPath, 'sil_myKeyboard', null).subscribe({
+        next: newPatchFile => {
+          const data: string = fs.readFileSync(newPatchFile).toString();
+          expect(data).toEqual(
+            /* #region expected patch file */
+            `From 28132549f15a430017bbb6121813387f0f0f84b6 Mon Sep 17 00:00:00 2001
+From: Keyman Developer Online <kdo@example.com>
+Date: Wed, 4 Dec 2019 16:03:16 +0100
+Subject: [PATCH] Second commit
+
+---
+ release/sil/sil_myKeyboard/dir1/file1.txt | 3 ++-
+ release/sil/sil_myKeyboard/file1.txt      | 2 +-
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/release/sil/sil_myKeyboard/dir1/file1.txt b/release/sil/sil_myKeyboard/dir1/file1.txt
+index 24cf2db..52a21ff 100644
+--- a/release/sil/sil_myKeyboard/dir1/file1.txt
++++ b/release/sil/sil_myKeyboard/dir1/file1.txt
+@@ -1 +1,2 @@
+-This is file1 in dir1
++This is file1 in dir1.
++It has more text now.
+diff --git a/release/sil/sil_myKeyboard/file1.txt b/release/sil/sil_myKeyboard/file1.txt
+index c278a75..c048aca 100644
+--- a/release/sil/sil_myKeyboard/file1.txt
++++ b/release/sil/sil_myKeyboard/file1.txt
+@@ -1 +1 @@
+-This is file1
++This is file1 in root directory
+--
+2.24.0
+`,
+            /* #endregion */
+          );
+        },
+        complete: () => done(),
+      });
+    });
+
   });
 
   describe('importPatches', () => {
@@ -526,9 +690,11 @@ index 0000000..4d3b8c1
 
   describe('transferChanges', () => {
     it('applies the changes to keyboards repo', async () => {
-      // Execute
+      // Setup
       expect.assertions(6);
-      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+
+      // Execute
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
 
       // Verify
       const firstFile = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
@@ -538,19 +704,20 @@ index 0000000..4d3b8c1
       expect(fs.existsSync(secondFile)).toBe(true);
       expect(fs.readFileSync(secondFile).toString()).toEqual('other text');
 
-      const singleKbNote = await gitService.readLastNote(singleKeyboardRepo).toPromise();
-      const keyboardsNote = await gitService.readLastNote(keyboardsRepo).toPromise();
-      expect(singleKbNote.message).toBe(`KDO exported to ${keyboardsNote.commitSha}`);
-      expect(keyboardsNote.message).toBe(`KDO imported from ${singleKbNote.commitSha}`);
+      const singleKbNote = await sut.readLastNote(singleKeyboardRepo).toPromise();
+      const keyboardsNote = await sut.readLastNote(keyboardsRepo).toPromise();
+      expect(singleKbNote.noteInfo.msg).toBe(`KDO exported to ${keyboardsNote.commitSha}`);
+      expect(keyboardsNote.noteInfo.msg).toBe(`KDO imported from ${singleKbNote.commitSha}`);
     });
 
     it('throws an error when there are no new changes', async () => {
+      // Setup
       expect.assertions(2);
-      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
 
       // Execute
       try {
-        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
       } catch (e) {
         // Verify
         expect(e.message).toEqual('No new changes in the single-keyboard repo.');
@@ -561,7 +728,7 @@ index 0000000..4d3b8c1
     it('throws an error when it encounters force-pushes on single kb repo', async () => {
       // Setup
       expect.assertions(2);
-      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
       const logs = await gitService.log(singleKeyboardRepo, { '-1': null }).toPromise();
       const commitOfFirstTransfer = logs.latest.hash;
 
@@ -570,7 +737,7 @@ index 0000000..4d3b8c1
       fs.appendFileSync(filePath1, `${os.EOL}Text for the third commit`);
       await gitService.addFile(singleKeyboardRepo, filePath1).toPromise();
       await gitService.commit(singleKeyboardRepo, 'Third commit').toPromise();
-      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
 
       // Reset singleKeyboardRepo to HEAD^ and add new third commit
       await gitService.reset(singleKeyboardRepo, commitOfFirstTransfer).toPromise();
@@ -580,34 +747,34 @@ index 0000000..4d3b8c1
 
       // Execute
       try {
-        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
       } catch (e) {
         // Verify
         expect(e.message).toMatch(/Non-linear history in single-keyboard repo. Force-push is not allowed./);
-        expect(e.status).toEqual(400);
+        expect(e.status).toEqual(412);
       }
     });
 
     it('throws an error with force-push on single kb repo if no other notes available', async () => {
       // Setup
       expect.assertions(2);
-      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
       await gitService.commit(singleKeyboardRepo, 'New second commit', { '--amend': null }).toPromise();
 
       // Execute
       try {
-        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
       } catch (e) {
         // Verify
         expect(e.message).toMatch(/Non-linear history in single-keyboard repo. Force-push is not allowed./);
-        expect(e.status).toEqual(400);
+        expect(e.status).toEqual(412);
       }
     });
 
     it('throws an error when it encounters new changes on keyboards repo', async () => {
       // Setup
       expect.assertions(2);
-      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+      await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
 
       // Add third commit on keyboardsRepo
       const filePath1 = path.join(keyboardsRepo, 'release', 'm', 'myKeyboard', 'somefile1.txt');
@@ -617,12 +784,91 @@ index 0000000..4d3b8c1
 
       // Execute
       try {
-        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo).toPromise();
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, { name: 'myKeyboard' }).toPromise();
       } catch (e) {
         // Verify
         expect(e.message).toMatch(/Keyboards repo has new changes in the single-keyboard directory. This is not allowed./);
         expect(e.status).toEqual(409);
       }
+    });
+
+    it('throws an error if project is not specified', async () => {
+      // Setup
+      expect.assertions(2);
+
+      // Execute
+      try {
+        await sut.transferChanges(singleKeyboardRepo, keyboardsRepo, null).toPromise();
+      } catch (e) {
+        // Verify
+        expect(e.message).toMatch(/Missing project data in request body/);
+        expect(e.status).toEqual(400);
+      }
+    });
+  });
+
+  describe('getPrefix', () => {
+    it.each([
+      [null,         null,  null],
+      [null,         'a',   null],
+      ['foo',        null,  'f'],
+      ['foo',        '',    'f'],
+      ['foo',        'a',   'a'],
+      ['foo',        'sil', 'sil'],
+      ['basic_foo]', null,  'basic'],
+      ['bj_foo',     null,  'bj'],
+      ['el_foo',     null,  'el'],
+      ['fv_foo',     null,  'fv'],
+      ['gff_foo',    null,  'gff'],
+      ['itrans_foo', null,  'itrans'],
+      ['nlci_foo',   null,  'nlci'],
+      ['nrc_foo',    null,  'nrc'],
+      ['rac_foo',    null,  'rac'],
+      ['sil_foo',    null,  'sil'],
+      ['sil_foo',    'a',   'a'],
+      ['sil',        null,  's'],
+      ['silfoo',     null,  's'],
+      ['xyz_foo',    null,  'x'],
+    ])('returns the expected prefix', (keyboardId, prefix, expectedPrefix) => {
+      expect(sut.getPrefix(keyboardId, prefix)).toEqual(expectedPrefix);
+    });
+  });
+
+  describe('createNote', () => {
+    it('can create notes', async () => {
+      // Setup
+      const headCommit = await gitService.getHeadCommit(singleKeyboardRepo).toPromise();
+      const transferInfo = new TransferInfo('a', 'b', 'c');
+
+      // Execute
+      await sut.createNote(singleKeyboardRepo, headCommit, transferInfo).toPromise();
+
+      // Verify
+      const note = await gitService.log(
+        singleKeyboardRepo,
+        ['--notes=kdo', '--pretty=format: \'%N\'']
+      ).pipe(
+        map(list => list.latest),
+        map(logLine => logLine.hash),
+        map(msg => /^'([^\n]+)/.exec(msg)[1]),
+      ).toPromise();
+      expect(note).toEqual('{"msg":"a","prefix":"b","keyboardName":"c"}');
+    });
+  });
+
+  describe('readLastNote', () => {
+    it('can roundtrip notes', async () => {
+      // Setup
+      const headCommit = await gitService.getHeadCommit(singleKeyboardRepo).toPromise();
+      const transferInfo = new TransferInfo('a', 'b', 'c');
+      await sut.createNote(singleKeyboardRepo, headCommit, transferInfo).toPromise();
+
+      // Execute
+      const note = await sut.readLastNote(singleKeyboardRepo).toPromise();
+
+      // Verify
+      expect(note.commitSha).toEqual(headCommit);
+      expect(note.noteInfo).toEqual(transferInfo);
     });
   });
 });
