@@ -6,20 +6,23 @@ import {
   catchError, concatMap, expand, map, mapTo, switchMap, takeLast, takeWhile, tap
 } from 'rxjs/operators';
 
+import { UrlDto } from '../../dist/auth/model/url-dto';
 import { ConfigService } from '../config/config.service';
 import { GitHubProject } from '../interfaces/git-hub-project.interface';
 import { GitHubPullRequest } from '../interfaces/git-hub-pull-request.interface';
 import { GitHubUser } from '../interfaces/git-hub-user.interface';
 import { GitHubAccessToken } from '../interfaces/github-access-token.interface';
+import { PrAction } from '../interfaces/pr-action.enum';
 import { TokenService } from '../token/token.service';
 
 import debugModule = require('debug');
 const debug = debugModule('kdo:github');
 const redirectUri = '/index.html';
-const scope = 'repo read:user user:email';
 
 @Injectable()
 export class GithubService {
+  public static readonly scope = 'repo read:user user:email';
+
   constructor(
     private readonly config: ConfigService,
     private readonly tokenService: TokenService,
@@ -31,13 +34,13 @@ export class GithubService {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public login(session: any): Observable<{ url: string }> {
+  public login(session: any): Observable<UrlDto> {
     // session.state = this.tokenService.createRandomString(10);
     const state = this.tokenService.createRandomString(10);
     const url = {
       url:
         `https://github.com/login/oauth/authorize?client_id=${this.config.clientId}&` +
-        `redirect_uri=${this.getRedirectUri()}&scope=${scope}&state=${state}`,
+        `redirect_uri=${this.getRedirectUri()}&scope=${GithubService.scope}&state=${state}`,
     };
     return of(url);
   }
@@ -258,7 +261,7 @@ export class GithubService {
               'number': result.data.number,
               url: result.data.html_url,
               state: result.data.state,
-              action: 'created',
+              action: PrAction.Created,
             })),
             catchError(err => { throw err.response.data.errors; }),
           );
@@ -341,7 +344,7 @@ export class GithubService {
           'number': result.data.number,
           url: result.data.html_url,
           state: result.data.state,
-          action: 'closed',
+          action: PrAction.Closed,
         })),
       );
   }
@@ -369,7 +372,7 @@ export class GithubService {
           'number': result.data.number,
           url: result.data.html_url,
           state: result.data.state,
-          action: 'existing',
+          action: PrAction.Existing,
         })),
       );
   }

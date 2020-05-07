@@ -1,6 +1,7 @@
-import { Observable } from 'rxjs';
 import { HttpException } from '@nestjs/common';
+
 import { AxiosResponse } from 'axios';
+import { Observable } from 'rxjs';
 
 export type NoParamConstructor<T> = new () => T;
 
@@ -15,7 +16,11 @@ export async function callWithErrorHandling<T extends { error?: string}, R>(
     let status = 200;
     try {
       const response = await method().toPromise();
-      if (
+      if (!response) {
+        data = new type();
+        data.error = 'Not authorized';
+        status = 401;
+      } else if (
         typeof response.data === 'string' &&
         (response.data as string).startsWith('error=')
       ) {
