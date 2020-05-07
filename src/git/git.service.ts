@@ -41,6 +41,8 @@ export class GitService {
     return from(this.git.addConfig('user.name', gitKdoUserName)).pipe(
       switchMap(() => from(this.git.addConfig('user.email', gitKdoEmail))),
       switchMap(() => from(this.git.addConfig('commit.gpgSign', 'false'))),
+      switchMap(() => from(this.git.addConfig('core.whitespace',
+        '-space-before-tab,-indent-with-no-tab,-tab-in-indent,-trailing-space'))),
       map(() => { return; }),
     );
   }
@@ -140,7 +142,7 @@ export class GitService {
     return from(this.git.cwd(repoDir)).pipe(
       map(() => patchFile),
       tap(file => trace(`importing ${file}`)),
-      flatMap(file => from(this.git.raw(['am', file]))),
+      flatMap(file => from(this.git.raw(['am', '--ignore-whitespace', file]))),
       map(() => { /* void */ }),
       takeLast(1),
     );
