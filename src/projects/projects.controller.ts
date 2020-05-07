@@ -209,6 +209,7 @@ export class ProjectsController {
   @ApiResponse({
     status: 201,
     description: 'Created',
+    type: GitHubPullRequest,
     schema: {
       allOf: [{ $ref: getSchemaPath(GitHubPullRequest)}],
       example: {
@@ -220,7 +221,10 @@ export class ProjectsController {
     }
   })
   @ApiResponse({ status: 304, description: 'No new changes on the single-keyboard repo' })
-  @ApiResponse({ status: 400, description: 'Non-linear history. Force-push is not allowed.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Non-linear history in single-keyboard repo. Force-push is not allowed.',
+  })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 409, description: 'Keyboards repo has new changes in the single-keyboard directory. This is not allowed.' })
   @HttpCode(201)
@@ -299,6 +303,7 @@ export class ProjectsController {
   @ApiResponse({
     status: 200,
     description: 'OK. Returns information about the existing pull request.',
+    type: GitHubPullRequest,
     schema: {
       allOf: [{ $ref: getSchemaPath(GitHubPullRequest) }],
       example: {

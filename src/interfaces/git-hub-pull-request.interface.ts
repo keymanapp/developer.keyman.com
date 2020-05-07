@@ -15,7 +15,6 @@ export class GitHubPullRequest {
 
   @ApiProperty({
     description: 'the user visible GitHub URL to the pull request',
-    type: 'string',
   })
   url: string;
 
