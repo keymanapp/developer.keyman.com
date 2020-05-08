@@ -68,8 +68,6 @@ convert a single keyboard repo into a pull request on the huge
       type: 'http',
       description: 'Used only in e2e tests. Use GitHub <b>username</b> and <b>personal access token</b>.',
     }, 'Tests')
-    .addServer('http://localhost:3000', 'Local development server')
-    .addServer('https://keyman-developer-online.azurewebsites.net', 'Main production server')
     .build();
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('api', app, document);
