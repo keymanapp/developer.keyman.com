@@ -122,7 +122,7 @@ export class UserController {
   })
   @ApiHeader({
     name: 'authorization',
-    description: 'The base64 encoded GitHub username and password',
+    description: 'The base64 encoded GitHub username and password (`Basic username:password`)',
     example: 'Basic 9...',
     required: false,
   })
