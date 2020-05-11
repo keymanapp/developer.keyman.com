@@ -30,7 +30,7 @@ export class GitService {
         if (command) {
           debug(`calling: git ${command}`);
           stdout.pipe(process.stdout);
-          stderr.pipe(process.stderr);
+          stderr.pipe(process.stdout);
         }
       });
     }
