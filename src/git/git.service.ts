@@ -45,6 +45,9 @@ export class GitService {
         '-space-before-tab,-indent-with-no-tab,-tab-in-indent,-trailing-space'))),
       switchMap(() => from(this.git.addConfig('branch.autsetupmerge', 'true'))),
       switchMap(() => from(this.git.addConfig('branch.autsetuprebase', 'always'))),
+      switchMap(() => from(this.git.addConfig('pull.rebase', 'true'))),
+      switchMap(() => from(this.git.addConfig('core.whitespace',
+        '-space-before-tab,-indent-with-no-tab,-tab-in-indent,-trailing-space'))),
       map(() => { return; }),
     );
   }

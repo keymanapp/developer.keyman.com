@@ -325,7 +325,11 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
       git('config user.email kdo@example.com', repoDir);
       git('config commit.gpgSign false', repoDir);
       git('config --add remote.origin.fetch +refs/notes/*:refs/notes/*', repoDir);
+      git('config branch.autosetupmerge true', repoDir);
+      git('config branch.autosetuprebase always', repoDir);
       git('config branch.master.rebase true', repoDir);
+      git('config pull.rebase true', repoDir);
+      git('config core.whitespace -space-before-tab,-indent-with-no-tab,-tab-in-indent,-trailing-space', repoDir);
     }
 
     async function cloneLocalKeyboardsRepo(): Promise<string> {
