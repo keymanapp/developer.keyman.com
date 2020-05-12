@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, ParamMap } from '@angular/router';
+import { Component, Input, OnInit } from '@angular/core';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 
 import { map, switchMap } from 'rxjs/operators';
 
@@ -13,11 +13,12 @@ import { SingleProjectService } from '../../services/single-project.service';
   styleUrls: ['./project-detail.component.scss']
 })
 export class ProjectDetailComponent implements OnInit {
-  public project: Project;
+  @Input() public project: Project;
   public pullRequest: GitHubPullRequest;
 
   constructor(
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly service: SingleProjectService,
   ) { }
 
@@ -33,5 +34,17 @@ export class ProjectDetailComponent implements OnInit {
     ).subscribe(pullRequest => {
       this.pullRequest = pullRequest;
     });
+  }
+
+  public get keyboardPath(): string {
+    return `release/${this.project.prefix}/${this.project.keyboardId}`;
+  }
+
+  public createOrUpdatePullRequest(project: Project) {
+    this.router.navigate(['/projects', project.name, 'pr',{
+      prefix: project.prefix,
+      keyboardId: project.keyboardId,
+      prExists: this.pullRequest.action,
+    }]);
   }
 }

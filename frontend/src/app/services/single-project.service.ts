@@ -22,20 +22,26 @@ export class SingleProjectService {
   ) { }
 
   public cloneProject(name: string): Observable<Project|null> {
-    return this.http.post<{ project }>(`${environment.apiUrl}/projects/${name}`, null, {
+    return this.http.post<Project>(`${environment.apiUrl}/projects/${name}`, null, {
       headers: { Authorization: `token ${this.userService.accessToken}` },
     }).pipe(
       catchError(this.errorHelper.handleError(`POST projects/${name} REST API`, null)),
-      map(obj => new Project(obj.name, true, name, obj.repoUrl)),
+      map(obj => new Project(obj.name, true, name, obj.prefix, obj.repoUrl)),
     );
   }
 
-  public createPullRequest(repoName: string): Observable<GitHubPullRequest | null> {
-    return this.http.put<{ pullRequest }>(`${environment.apiUrl}/projects/${repoName}`, null, {
-      headers: { Authorization: `token ${this.userService.accessToken}` },
-    }).pipe(
-      catchError(this.errorHelper.handleError(`PUT projects/${repoName} REST API`, null)),
-      map(pullRequest => new GitHubPullRequest(repoName, pullRequest.number, pullRequest.url, pullRequest.action)),
+  public createPullRequest(
+    repoName: string,
+    prefix: string,
+    keyboardId: string,
+  ): Observable<GitHubPullRequest | null> {
+    return this.http.put<{ number; url: string; action: string }>(
+      `${environment.apiUrl}/projects/${repoName}`,
+      { name: keyboardId, prefix },
+      { headers: { Authorization: `token ${this.userService.accessToken}` } },
+    ).pipe(
+      // we let caller deal with errors
+      map((pullRequest: { number; url: string; action: string }) => new GitHubPullRequest(repoName, pullRequest.number, pullRequest.url, pullRequest.action)),
     );
   }
 
