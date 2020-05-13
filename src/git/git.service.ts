@@ -43,8 +43,9 @@ export class GitService {
       switchMap(() => from(this.git.addConfig('commit.gpgSign', 'false'))),
       switchMap(() => from(this.git.addConfig('core.whitespace',
         '-space-before-tab,-indent-with-no-tab,-tab-in-indent,-trailing-space'))),
-      switchMap(() => from(this.git.addConfig('branch.autsetupmerge', 'true'))),
-      switchMap(() => from(this.git.addConfig('branch.autsetuprebase', 'always'))),
+      switchMap(() => from(this.git.addConfig('branch.autosetupmerge', 'true'))),
+      switchMap(() => from(this.git.addConfig('branch.autosetuprebase', 'always'))),
+      switchMap(() => from(this.git.addConfig('branch.master.rebase', 'true'))),
       switchMap(() => from(this.git.addConfig('pull.rebase', 'true'))),
       map(() => { return; }),
     );
@@ -94,8 +95,7 @@ export class GitService {
     }
     if (remoteName) {
       options.push(`--origin=${remoteName}`);
-    }
-    if (!remoteName) {
+    } else {
       remoteName = 'origin';
     }
 
