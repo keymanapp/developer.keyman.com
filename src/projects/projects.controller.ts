@@ -123,15 +123,15 @@ export class ProjectsController {
     @Headers('authorization') token: string,
     @Param('repo') repo: string,
   ): Observable<Project> {
-    const localRepo = this.backendService.getProjectRepo(session.login, repo);
-    const remoteRepo = `${this.gitHubUrl}/${session.login}/${repo}.git`;
+    const localSkRepo = this.backendService.getProjectRepo(session.login, repo);
+    const remoteSkRepo = `${this.gitHubUrl}/${session.login}/${repo}.git`;
 
-    debug(`In createRepo: login: ${session.login}, repo: ${repo}, localRepo: ${localRepo}, \\`);
-    debug(`    remoteRepo: ${ remoteRepo }, branch: ${ this.backendService.branchName }`);
+    debug(`In createRepo: login: ${session.login}, repo: ${repo}, localRepo: ${localSkRepo}, \\`);
+    debug(`    remoteRepo: ${ remoteSkRepo }, branch: ${ this.backendService.branchName }`);
 
     const createSingleProject = this.backendService.cloneOrUpdateProject(
-        remoteRepo,
-        localRepo,
+        remoteSkRepo,
+        localSkRepo,
         this.backendService.branchName,
         session.login,
     ).pipe(
@@ -155,18 +155,18 @@ export class ProjectsController {
       catchError(() => of(false)),
       switchMap(prExists => {
         if (prExists) {
-          return this.pullRequestService.readLastNote(localRepo).pipe(
+          return this.pullRequestService.readLastNote(localSkRepo).pipe(
             map(note => ({
               name: note.noteInfo.keyboardName,
-              repoUrl: remoteRepo,
+              repoUrl: remoteSkRepo,
               prefix: note.noteInfo.prefix,
             })),
           );
         }
-        const keyboardId = this.backendService.getKeyboardId(repo, localRepo);
+        const keyboardId = this.backendService.getKeyboardId(repo, localSkRepo);
         return of({
           name: keyboardId,
-          repoUrl: remoteRepo,
+          repoUrl: remoteSkRepo,
           prefix: this.pullRequestService.getPrefix(keyboardId, null),
         } as Project) ;
       }),
