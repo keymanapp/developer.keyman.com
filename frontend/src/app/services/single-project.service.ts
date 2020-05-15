@@ -25,7 +25,7 @@ export class SingleProjectService {
     return this.http.post<Project>(`${environment.apiUrl}/projects/${name}`, null, {
       headers: { Authorization: `token ${this.userService.accessToken}` },
     }).pipe(
-      catchError(this.errorHelper.handleError(`POST projects/${name} REST API`, null)),
+      // we let caller deal with errors
       map(obj => new Project(obj.name, true, name, obj.prefix, obj.repoUrl)),
     );
   }

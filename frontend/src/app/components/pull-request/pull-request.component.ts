@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, ParamMap, Router } from '@angular/router';
+import { ActivatedRoute, ParamMap } from '@angular/router';
 
 import { switchMap } from 'rxjs/operators';
 
@@ -21,7 +21,6 @@ export class PullRequestComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly errorHelper: ErrorHelper,
-    private readonly router: Router,
     private readonly service: SingleProjectService,
   ) { }
 
@@ -44,7 +43,7 @@ export class PullRequestComponent implements OnInit {
           this.message = 'Keyboards repo has new changes in the single-keyboard directory. This is not allowed.';
         } else if (err.status === 412) {
           this.message = 'Non-linear history in single-keyboard repo. Force-push is not allowed.';
-        } else if (err.status === 403) {
+        } else if (err.status === 401 || err.status === 403) {
           this.errorHelper.handleUnauthorized();
         } else {
           this.message = `ERROR ${err.status}: ${err.statusText}.`;

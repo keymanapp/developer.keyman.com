@@ -1,9 +1,13 @@
 <div class="centered">
-  <div *ngIf="!project || !pullRequest">
+  <div *ngIf="(!project || !pullRequest) && !message">
     <div class="spinner">
       <fa-icon icon="spinner" spin="true" size="5x"></fa-icon>
     </div>
     <div class="message">Please wait while we get your project ready</div>
+  </div>
+  <div *ngIf="message">
+    <div class="message">{{ message }}</div>
+    <a [routerLink]="['/projects']"><button>Select another project</button></a>
   </div>
   <div *ngIf="project && pullRequest && pullRequest.pullRequest === 0">
     <div>
