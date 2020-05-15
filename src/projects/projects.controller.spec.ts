@@ -2,7 +2,7 @@ import { HttpException } from '@nestjs/common';
 import { HttpModule } from '@nestjs/common/http';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { empty, of } from 'rxjs';
+import { empty, of, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { BackendProjectModule } from '../backend-project/backend-project.module';
@@ -39,9 +39,7 @@ describe('Projects Controller', () => {
             getRepos: jest.fn(() => true),
             forkRepo: jest.fn(() => of({ name: 'foo' })),
             createPullRequest: jest.fn(() => of()),
-            pullRequestExists: jest.fn(() => {
-              throw new HttpException('Pull request does not exist', 404);
-            }),
+            pullRequestExists: jest.fn(() => throwError(new HttpException('Pull request does not exist', 404))),
             pullRequestDetails: jest.fn(() => of()),
           }),
         },
@@ -63,7 +61,10 @@ describe('Projects Controller', () => {
     ).toPromise();
     const readme = path.join(keyboardsDummyRepo, 'README.md');
     fs.appendFileSync(readme, 'Readme');
+    const kbInfo = path.join(keyboardsDummyRepo, 'dummy.keyboard_info');
+    fs.appendFileSync(kbInfo, '{}');
     await gitService.addFile(keyboardsDummyRepo, readme).toPromise();
+    await gitService.addFile(keyboardsDummyRepo, kbInfo).toPromise();
     await gitService.commit(keyboardsDummyRepo, 'Initial commit').toPromise();
     return keyboardsDummyRepo;
   }
@@ -151,11 +152,14 @@ describe('Projects Controller', () => {
       const repoDir = await gitService.createRepo(path.join(gitHubDir, 'tmpTestRepo')).toPromise();
       const filePath1 = path.join(repoDir, 'somefile1.txt');
       const filePath2 = path.join(repoDir, 'somefile2.txt');
+      const kbInfo = path.join(repoDir, 'remoteTestRepo.keyboard_info');
       fs.appendFileSync(filePath1, 'some text');
       fs.appendFileSync(filePath2, 'other text');
+      fs.appendFileSync(kbInfo, '{}');
       await Promise.all([
         gitService.addFile(repoDir, filePath1).toPromise(),
         gitService.addFile(repoDir, filePath2).toPromise(),
+        gitService.addFile(repoDir, kbInfo).toPromise(),
       ]);
       await gitService.commit(repoDir, 'Initial commit').toPromise();
 

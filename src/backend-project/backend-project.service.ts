@@ -5,7 +5,7 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { ConfigService } from '../config/config.service';
 import { GitService } from '../git/git.service';
-import { fileExists } from '../utils/file';
+import { fileExists, readdir } from '../utils/file';
 
 import fs = require('fs');
 import path = require('path');
@@ -155,5 +155,21 @@ export class BackendProjectService {
     }
 
     return repoName;
+  }
+
+  public isSingleKeyboardRepo(localRepo: string): Observable<boolean> {
+    return readdir(localRepo).pipe(
+      map(files => {
+        const newFiles: string[] = [];
+        for (const f of files) {
+          const fn = f.toString();
+          if (fn.endsWith('.keyboard_info')) {
+            newFiles.push(f.toString());
+          }
+        }
+        return newFiles;
+      }),
+      map(files => files?.length > 0),
+    );
   }
 }

@@ -1,9 +1,10 @@
 import {
-  Body, Controller, Get, Headers, HttpCode, HttpException, Param, Post, Put, Session
+  BadRequestException, Body, Controller, Get, Headers, HttpCode, HttpException, Param, Post, Put,
+  Session
 } from '@nestjs/common';
 import {
-  ApiBasicAuth, ApiBody, ApiHeader, ApiOAuth2, ApiOperation, ApiParam, ApiQuery, ApiResponse,
-  ApiTags, ApiUnauthorizedResponse, getSchemaPath
+  ApiBadRequestResponse, ApiBasicAuth, ApiBody, ApiHeader, ApiOAuth2, ApiOperation, ApiParam,
+  ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse, getSchemaPath
 } from '@nestjs/swagger';
 
 import { Observable, of } from 'rxjs';
@@ -116,6 +117,7 @@ export class ProjectsController {
     description: 'The name of the single-keyboard GitHub repo',
   })
   @ApiResponse({ status: 201, description: 'Created', type: Project })
+  @ApiBadRequestResponse({ description: 'Repo is not a single-keyboard repo' })
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   @HttpCode(201)
   public createRepo(
@@ -129,61 +131,47 @@ export class ProjectsController {
     debug(`In createRepo: login: ${session.login}, repo: ${repo}, localRepo: ${localSkRepo}, \\`);
     debug(`    remoteRepo: ${ remoteSkRepo }, branch: ${ this.backendService.branchName }`);
 
-    const createSingleProject = this.backendService.cloneOrUpdateProject(
-        remoteSkRepo,
-        localSkRepo,
-        this.backendService.branchName,
-        session.login,
-    ).pipe(
-      tap(project => debug(`cloneOrUpdateProject(singleProj) created in ${project}`)),
-   );
-
-    const createKeyboardsRepo = this.forkCloneAndUpdateProject(
+    return this.forkCloneAndUpdateProject(
       token, session.login, this.configService.keyboardsRepoName, repo, 'master',
     ).pipe(
       tap(project => debug(`forkCloneAndUpdateProject(keyboards) created in ${project}`)),
-    );
-
-    return createKeyboardsRepo.pipe(
-      switchMap(() => createSingleProject),
-      switchMap(() => this.githubService.pullRequestExists(
-        token,
-        this.configService.organizationName,
-        this.configService.keyboardsRepoName,
-        `${session.login}:${session.login}-${repo}`,
+      switchMap(() => this.backendService.cloneOrUpdateProject(
+        remoteSkRepo, localSkRepo, this.backendService.branchName, session.login,
       )),
-      catchError(() => of(false)),
-      switchMap(prExists => {
-        if (prExists) {
-          return this.pullRequestService.readLastNote(localSkRepo).pipe(
-            map(note => ({
-              name: note.noteInfo.keyboardName,
-              repoUrl: remoteSkRepo,
-              prefix: note.noteInfo.prefix,
-            })),
-          );
+      tap(project => debug(`cloneOrUpdateProject(singleProj) created in ${project}`)),
+      switchMap(() => this.backendService.isSingleKeyboardRepo(localSkRepo)),
+      switchMap(isSkRepo => {
+        if (!isSkRepo) {
+          debug(`${repo} is not a single-keyboard repo`);
+          throw new BadRequestException(`${repo} is not a single-keyboard repo`);
         }
-        const keyboardId = this.backendService.getKeyboardId(repo, localSkRepo);
-        return of({
-          name: keyboardId,
-          repoUrl: remoteSkRepo,
-          prefix: this.pullRequestService.getPrefix(keyboardId, null),
-        } as Project) ;
+        return this.githubService.pullRequestExists(
+          token,
+          this.configService.organizationName,
+          this.configService.keyboardsRepoName,
+          `${session.login}:${session.login}-${repo}`,
+        ).pipe(
+          catchError(() => of(false)),
+          switchMap(prExists => {
+            if (prExists) {
+              return this.pullRequestService.readLastNote(localSkRepo).pipe(
+                map(note => ({
+                  name: note.noteInfo.keyboardName,
+                  repoUrl: remoteSkRepo,
+                  prefix: note.noteInfo.prefix,
+                })),
+              );
+            }
+            const keyboardId = this.backendService.getKeyboardId(repo, localSkRepo);
+            return of({
+              name: keyboardId,
+              repoUrl: remoteSkRepo,
+              prefix: this.pullRequestService.getPrefix(keyboardId, null),
+            } as Project);
+          }),
+        );
       }),
-     );
-
-    /*
-    * Originally I had the code below. However, that causes problems when updating existing
-    * repos - git commands get queued, and for whatever reason it returned before all git
-    * commands were executed, leaving us with an outdated local repo.
-
-    return forkJoin({
-      result1: createSingleProject,
-      result2: createKeyboardsRepo,
-    }).pipe(
-      map((obj) => obj.result1),
     );
-    */
   }
 
   private forkCloneAndUpdateProject(
