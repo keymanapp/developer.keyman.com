@@ -28,7 +28,7 @@ export class ErrorHelper {
       // tslint:disable-next-line: no-console
       console.error(error); // log to console instead
 
-      if (error.status === 403) {
+      if (error.status === 401 || error.status === 403) {
         this.user.clear();
         this.router.navigate(['/'], { replaceUrl: true });
         return EMPTY;
