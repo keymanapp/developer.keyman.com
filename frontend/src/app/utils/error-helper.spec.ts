@@ -1,11 +1,12 @@
 import { APP_BASE_HREF } from '@angular/common';
 import { NgZone } from '@angular/core';
-import { TestBed, inject } from '@angular/core/testing';
+import { inject, TestBed } from '@angular/core/testing';
 import { Router, RouterModule } from '@angular/router';
+
 import { StorageServiceModule } from 'ngx-webstorage-service';
 import { EMPTY } from 'rxjs';
-import { User } from '../model/user';
 
+import { User } from '../model/user';
 import { ErrorHelper } from './error-helper';
 
 describe('ErrorHelper', () => {
@@ -51,7 +52,7 @@ describe('ErrorHelper', () => {
     }
   ));
 
-  it('errorHandle logs error if not 403', inject(
+  it('errorHandle logs error if not 403 or 401', inject(
     [User, Router, NgZone],
     (user: User, router: Router, ngZone: NgZone) => {
       expect.assertions(4);
@@ -65,7 +66,7 @@ describe('ErrorHelper', () => {
         expect(
           sut
             .handleError('test', 'foo')
-            .call(sut, { status: 401, message: 'msg' })
+            .call(sut, { status: 400, message: 'msg' })
             .toPromise()
         ).resolves.toEqual('foo');
         expect(clearSpy).not.toBeCalled();
