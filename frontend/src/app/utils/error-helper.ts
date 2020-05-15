@@ -31,7 +31,7 @@ export class ErrorHelper {
       console.error(error); // log to console instead
 
       if (error.status === 403) {
-        return this.handle403();
+        return this.handleUnauthorized();
       } else {
         // TODO: better job of transforming error for user consumption
         this.log(`${operation} failed: ${error.message}`);
@@ -42,7 +42,7 @@ export class ErrorHelper {
     };
   }
 
-  public handle403<T>(): Observable<T> {
+  public handleUnauthorized<T>(): Observable<T> {
     this.user.clear();
     this.router.navigate(['/'], { replaceUrl: true });
     return EMPTY;

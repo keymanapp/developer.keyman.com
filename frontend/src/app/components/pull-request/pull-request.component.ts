@@ -45,7 +45,7 @@ export class PullRequestComponent implements OnInit {
         } else if (err.status === 412) {
           this.message = 'Non-linear history in single-keyboard repo. Force-push is not allowed.';
         } else if (err.status === 403) {
-          this.errorHelper.handle403();
+          this.errorHelper.handleUnauthorized();
         } else {
           this.message = `ERROR ${err.status}: ${err.statusText}.`;
         }
