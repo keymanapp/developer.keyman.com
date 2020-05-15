@@ -10,7 +10,7 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     if (request.url.startsWith('/api/auth/login') ||
       (request.session.login && request.headers.authorization) ||
-      (request.url.startsWith('/api/auth/user/test') && request.headers.authorization)) {
+      (request.url.startsWith('/api/auth/user') && request.headers.authorization)) {
       return true;
     }
     throw new UnauthorizedException();
