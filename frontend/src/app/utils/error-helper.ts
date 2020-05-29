@@ -30,7 +30,7 @@ export class ErrorHelper {
       // tslint:disable-next-line: no-console
       console.error(error); // log to console instead
 
-      if (error.status === 403) {
+      if (error.status === 401 || error.status === 403) {
         return this.handleUnauthorized();
       } else {
         // TODO: better job of transforming error for user consumption

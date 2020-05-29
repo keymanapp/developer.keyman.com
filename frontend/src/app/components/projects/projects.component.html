@@ -1,3 +1,4 @@
+<div *ngIf="!loadedProjects || projects.length > 0">
 <p>Below are your repositories from GitHub. Please select a single-keyboard project.</p>
 <ul class='projects' *ngIf="projects.length">
   <li *ngFor='let project of projects'>
@@ -13,3 +14,8 @@
   <fa-icon icon="spinner" spin="true" size="5x"></fa-icon>
 </div>
 <p><a href='#'>I don't see my keyboard project</a></p>
+</div>
+<div class="centered" *ngIf="loadedProjects && !projects.length">
+  <p>You don't have any repositories on GitHub yet.
+    Please create a single-keyboard repo first.</p>
+</div>

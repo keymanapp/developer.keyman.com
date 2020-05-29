@@ -131,6 +131,7 @@ export class UserController {
     type: 'string',
   })
   @ApiOkResponse({description: 'OK'})
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   public getUser(
     @Session() session: any,
     @Headers('authorization') token: string,
