@@ -1,19 +1,22 @@
 export class Project {
   public keyboardId: string;
-  public repoName: string;
-  public url: string;
+  public name: string;
+  public prefix: string;
+  public repoUrl: string;
   public enabled: boolean;
 
   public constructor(
     keyboardId: string,
     enabled: boolean,
     repoName: string = keyboardId,
-    url: string | null = null,
+    prefix?: string,
+    url?: string,
   ) {
     this.keyboardId = keyboardId;
-    this.repoName = repoName;
+    this.name = repoName;
+    this.prefix = prefix;
     this.enabled = enabled;
-    this.url = url;
+    this.repoUrl = url;
   }
 
 }

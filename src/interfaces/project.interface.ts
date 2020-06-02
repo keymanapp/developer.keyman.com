@@ -14,4 +14,10 @@ export class Project {
     example: 'https://github.com/octocat/Hello-World',
   })
   public repoUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'The prefix the single-keyboard will get in the keyboards repo',
+    example: 'h',
+  })
+  public prefix?: string;
 }

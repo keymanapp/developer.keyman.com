@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { switchMap, tap } from 'rxjs/operators';
+import { CommitSummary } from 'simple-git/typings/response';
+
+import { ConfigModule } from '../config/config.module';
+import { ConfigService } from '../config/config.service';
+import { GitService } from '../git/git.service';
+import { deleteFolderRecursive } from '../utils/delete-folder';
+import { BackendProjectService } from './backend-project.service';
+
 import fs = require('fs');
 import os = require('os');
 import path = require('path');
-
-import { ConfigService } from '../config/config.service';
-import { ConfigModule } from '../config/config.module';
-import { GitService } from '../git/git.service';
-import { deleteFolderRecursive } from '../utils/delete-folder';
-
-import { BackendProjectService } from './backend-project.service';
-import { tap, switchMap } from 'rxjs/operators';
-import { CommitSummary } from 'simple-git/typings/response';
 
 describe('BackendProjectService', () => {
   let sut: BackendProjectService;
@@ -270,4 +270,57 @@ describe('BackendProjectService', () => {
 
   });
 
+  describe('isSingleKeyboardRepo', () => {
+    let testDir: string;
+
+    beforeEach(() => {
+      const prefix = path.join(os.tmpdir(), 'backendprojecttests-');
+      testDir = fs.mkdtempSync(prefix);
+    });
+
+    afterEach(() => {
+      deleteFolderRecursive(tmpDir);
+    });
+
+    it('returns true if keyboard_info exists', async () => {
+      // Setup
+      expect.assertions(1);
+      fs.appendFileSync(path.join(testDir, 'enga.keyboard_info'), `{
+        "id": "test",
+        "license": "mit",
+        "languages": [ "enq-Latn" ],
+        "description": "The Enga keyboard supports the Enga language of Papua New Guinea"
+      }`);
+
+      // Execute
+      const retVal = await sut.isSingleKeyboardRepo(testDir).toPromise();
+
+      // Verify
+      expect(retVal).toBe(true);
+    });
+
+    it('returns false for empty dir', async() => {
+      // Setup
+      expect.assertions(1);
+
+      // Execute
+      const retVal = await sut.isSingleKeyboardRepo(testDir).toPromise();
+
+      // Verify
+      expect(retVal).toBe(false);
+    });
+
+    it('returns false if keyboard_info does not exist', async () => {
+      // Setup
+      expect.assertions(1);
+      fs.appendFileSync(path.join(testDir, 'foo'), '');
+
+      // Execute
+      const retVal = await sut.isSingleKeyboardRepo(testDir).toPromise();
+
+      // Verify
+      expect(retVal).toBe(false);
+    });
+
+  });
 });

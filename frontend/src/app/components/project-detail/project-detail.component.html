@@ -1,18 +1,28 @@
 <div class="centered">
-  <div *ngIf="!project || !pullRequest">
+  <div *ngIf="(!project || !pullRequest) && !message">
     <div class="spinner">
       <fa-icon icon="spinner" spin="true" size="5x"></fa-icon>
     </div>
     <div class="message">Please wait while we get your project ready</div>
   </div>
+  <div *ngIf="message">
+    <div class="message">{{ message }}</div>
+    <a [routerLink]="['/projects']"><button>Select another project</button></a>
+  </div>
   <div *ngIf="project && pullRequest && pullRequest.pullRequest === 0">
     <div>
-      <label>Keyboard id: {{ project.keyboardId }}</label>
+      <label>Keyboard id: <input [(ngModel)]="project.keyboardId" placeholder="name"/></label>
     </div>
     <div>
-      <label>GitHub repo: <a href="{{ project.url }}">{{ project.url }}</a></label>
+      <label>Prefix: <input [(ngModel)]="project.prefix" placeholder="prefix"/></label>
     </div>
-    <a [routerLink]="['/projects', project.repoName, 'pr']"><button>Create pull request</button></a>
+    <div>
+      <label>GitHub repo: <a href="{{ project.repoUrl }}">{{ project.repoUrl }}</a></label>
+    </div>
+    <div>
+      <label>The keyboard will be saved in <i>{{ keyboardPath }}</i>.</label>
+    </div>
+    <button (click)="createOrUpdatePullRequest(project)">Create pull request</button>
   </div>
   <div *ngIf="project && pullRequest && pullRequest.pullRequest > 0">
     <div>
@@ -22,8 +32,14 @@
       <label>Keyboard id: {{ project.keyboardId }}</label>
     </div>
     <div>
-      <label>GitHub repo: <a href="{{ project.url }}">{{ project.url }}</a></label>
+      <label>Prefix: {{ project.prefix }}</label>
     </div>
-    <a [routerLink]="['/projects', project.repoName, 'pr']"><button>Update pull request</button></a>
+    <div>
+      <label>GitHub repo: <a href="{{ project.repoUrl }}">{{ project.repoUrl }}</a></label>
+    </div>
+    <div>
+      <label>The keyboard is saved in <i>{{ keyboardPath }}</i>.</label>
+    </div>
+    <button (click)="createOrUpdatePullRequest(project)">Update pull request</button>
   </div>
 </div>

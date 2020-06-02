@@ -1,6 +1,8 @@
-import { Observable, of, EMPTY } from 'rxjs';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
+
+import { EMPTY, Observable, of } from 'rxjs';
+
 import { User } from '../model/user';
 
 @Injectable({
@@ -29,9 +31,7 @@ export class ErrorHelper {
       console.error(error); // log to console instead
 
       if (error.status === 401 || error.status === 403) {
-        this.user.clear();
-        this.router.navigate(['/'], { replaceUrl: true });
-        return EMPTY;
+        return this.handleUnauthorized();
       } else {
         // TODO: better job of transforming error for user consumption
         this.log(`${operation} failed: ${error.message}`);
@@ -40,5 +40,11 @@ export class ErrorHelper {
       // Let the app keep running by returning an empty result.
       return of(result as T);
     };
+  }
+
+  public handleUnauthorized<T>(): Observable<T> {
+    this.user.clear();
+    this.router.navigate(['/'], { replaceUrl: true });
+    return EMPTY;
   }
 }

@@ -1,7 +1,7 @@
 import { bindNodeCallback, Observable, of } from 'rxjs';
-import fs = require('fs');
-import { map, catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 
+import fs = require('fs');
 export function fileExists(
   fileName: string,
 ): Observable<boolean> {
@@ -50,4 +50,11 @@ export function appendFile(fileName: string, content: string): Observable<void> 
 export function mkdtemp(prefix: string): Observable<string> {
   const mkdtempAsObservable = bindNodeCallback(fs.mkdtemp);
   return mkdtempAsObservable(prefix);
+}
+
+export function readdir(path: string): Observable<string[] | Buffer[]> {
+  const readdirAsObservable = bindNodeCallback(fs.readdir);
+  return readdirAsObservable(path).pipe(
+    map(x => x as string[] | Buffer[]),
+  );
 }

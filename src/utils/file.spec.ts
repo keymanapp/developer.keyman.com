@@ -3,7 +3,7 @@ import os = require('os');
 import path = require('path');
 
 import { deleteFolderRecursive } from './delete-folder';
-import { fileExists, mkdir, readFile, writeFile, appendFile, mkdtemp } from './file';
+import { appendFile, fileExists, mkdir, mkdtemp, readdir, readFile, writeFile } from './file';
 
 describe('Observable file methods', () => {
   let tmpDir: string;
@@ -118,6 +118,27 @@ describe('Observable file methods', () => {
       const sanitizedPrefix = prefix.replace(new RegExp('\\\\', 'g'), '\\\\');
       const expected = new RegExp(`^${sanitizedPrefix}.+`);
       expect(dir).toMatch(expected);
+    });
+  });
+
+  describe('readdir', () => {
+    it('reads files in directory', async () => {
+      // Setup
+      expect.assertions(3);
+      const prefix = path.join(tmpDir, 'readdir');
+      fs.mkdirSync(prefix);
+      const filePath = path.join(prefix, 'fileExists-somefile.txt');
+      fs.appendFileSync(filePath, 'some text');
+      const dirPath = path.join(prefix, 'subdir');
+      fs.mkdirSync(dirPath);
+
+      // Execute
+      const content = await readdir(prefix).toPromise();
+
+      // Verify
+      expect(content.length).toEqual(2);
+      expect(content).toContain('fileExists-somefile.txt');
+      expect(content).toContain('subdir');
     });
   });
 });
