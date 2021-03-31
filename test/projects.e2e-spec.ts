@@ -302,7 +302,10 @@ describeIf('ProjectsController (e2e)', canRunTheseTests(), () => {
   ): void {
     git('config user.name "Keyman Developer Online e2e tests"', repoDir);
     git('config user.email kdo@example.com', repoDir);
+    git('config init.defaultBranch master', repoDir);
     git('config commit.gpgSign false', repoDir);
+    git('config push.gpgSign false', repoDir);
+    git('config tag.gpgSign false', repoDir);
     git('config --add remote.origin.fetch +refs/notes/*:refs/notes/*', repoDir);
     git('config branch.autosetupmerge true', repoDir);
     git('config branch.autosetuprebase always', repoDir);
