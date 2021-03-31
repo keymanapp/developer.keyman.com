@@ -40,7 +40,11 @@ export class GitService {
     // Set default values
     return from(this.git.addConfig('user.name', gitKdoUserName)).pipe(
       switchMap(() => from(this.git.addConfig('user.email', gitKdoEmail))),
+      switchMap(() => from(this.git.addConfig('init.defaultBranch', 'master'))),
       switchMap(() => from(this.git.addConfig('commit.gpgSign', 'false'))),
+      switchMap(() => from(this.git.addConfig('push.gpgSign', 'false'))),
+      switchMap(() => from(this.git.addConfig('tag.gpgSign', 'false'))),
+    ).pipe( // this might look strange, but seems a pipe can have at most 10 parameters
       switchMap(() => from(this.git.addConfig('core.whitespace',
         '-space-before-tab,-indent-with-no-tab,-tab-in-indent,-trailing-space'))),
       switchMap(() => from(this.git.addConfig('branch.autosetupmerge', 'true'))),
