@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { HttpException, HttpService, Injectable } from '@nestjs/common';
 
 import { AxiosRequestConfig, AxiosResponse } from 'axios';

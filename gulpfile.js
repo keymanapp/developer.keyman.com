@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const { series, parallel } = require('gulp');
 const exec = require('child_process').exec;
 const execSync = require('child_process').execSync;
