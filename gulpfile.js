@@ -65,7 +65,7 @@ function installFrontend(cb) {
 }
 
 function installFrontendWebdriver(cb) {
-  runCommand2(cb, 'npm install webdriver-manager@latest', 'frontend/node_modules/protractor');
+  runCommand2(cb, 'npm install --force --production webdriver-manager@latest', 'frontend/node_modules/protractor');
 }
 
 function updateFrontendWebdriver(cb) {
