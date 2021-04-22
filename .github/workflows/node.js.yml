@@ -33,4 +33,8 @@ jobs:
     - name: Build
       run:  npm run gulp cibuild
     - name: Test
-      run:  npm run gulp citest
+      run:  npm run gulp test
+    - name: e2e Tests
+      run: |
+        env
+        npm run gulp e2e
