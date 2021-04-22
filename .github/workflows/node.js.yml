@@ -35,6 +35,9 @@ jobs:
     - name: Test
       run:  npm run gulp test
     - name: e2e Tests
+      env:
+        TEST_GITHUB_USER: ${{ secrets.TEST_GITHUB_USER }}
+        TEST_GITHUB_TOKEN: ${{ secrets.TEST_GITHUB_TOKEN }}
       run: |
         env
         npm run gulp e2e
