@@ -11,12 +11,11 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [14, 15]
+        node_version: [ 14, 15 ]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -27,17 +26,32 @@ jobs:
         node-version: ${{ matrix.node-version }}
         check-latest: true
     - name: Install global packages
-      run:  npm install -g @nestjs/cli @angular/cli gulp-cli gulp
+      run:  sudo npm install -g @nestjs/cli @angular/cli gulp-cli gulp
     - name: Install gulp etc
       run:  npm install gulp-cli gulp jest
     - name: Build
       run:  npm run gulp cibuild
     - name: Test
       run:  npm run gulp test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 14
+      uses: actions/setup-node@v2
+      with:
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node_version: 14
+        check-latest: true
+    - name: Install global packages
+      run:  sudo npm install -g @nestjs/cli @angular/cli gulp-cli gulp
+    - name: Install gulp etc
+      run:  npm install gulp-cli gulp jest
     - name: e2e Tests
       env:
         TEST_GITHUB_USER: ${{ secrets.TEST_GITHUB_USER }}
         TEST_GITHUB_TOKEN: ${{ secrets.TEST_GITHUB_TOKEN }}
-      run: |
-        env
-        npm run gulp e2e
+        NODE_ENV: test
+        DEBUG: kdo:*
+      run: npm run gulp e2e
